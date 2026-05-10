@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import '../../lib/usecases/data_toolbox.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-10T15:48:11.475997
+// Сгенерировано: 2026-05-10T15:50:27.982374
 
 void main() {
   final datatoolbox = DataToolbox();
