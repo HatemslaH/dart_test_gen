@@ -1,35 +1,6 @@
-enum ItemStatus { active, inactive }
-
-class CustomItem {
-  final int id;
-  final String name;
-  const CustomItem({required this.id, required this.name});
-
-  @override
-  String toString() => 'CustomItem(id: $id, name: $name)';
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is CustomItem && runtimeType == other.runtimeType && id == other.id && name == other.name;
-
-  @override
-  int get hashCode => id.hashCode ^ name.hashCode;
-}
-
-class AnotherClass {
-  final String title;
-  final double score;
-  const AnotherClass(this.title, this.score);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AnotherClass && runtimeType == other.runtimeType && title == other.title && score == other.score;
-
-  @override
-  int get hashCode => title.hashCode ^ score.hashCode;
-}
+import 'package:dart_test_gen/usecases/optional_types/another_class.dart';
+import 'package:dart_test_gen/usecases/optional_types/custom_item.dart';
+import 'package:dart_test_gen/usecases/optional_types/item_status.dart';
 
 class OptionalTypes {
   int sumNullable(int? a, int? b) {

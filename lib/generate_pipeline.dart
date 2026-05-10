@@ -363,11 +363,16 @@ Future<void> generateSingleLibraryFile({
   final importPath = packageImportUri(packageRoot, packageName, absoluteLibPath);
   v('render', importPath);
 
+  final receiverInfo = parsed.allFileClasses.where((c) => c.name == parsed.className).firstOrNull;
+  final receiverInstantiation =
+      receiverInfo != null ? instantiationExpressionForClass(receiverInfo) : null;
+
   final content = generateTestFile(
     className: parsed.className,
     importPath: importPath,
     extraImports: extraPackageImports,
     methods: methods,
+    receiverInstantiation: receiverInstantiation,
   );
 
   emit(progress: 90);

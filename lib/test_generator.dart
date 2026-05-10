@@ -214,6 +214,8 @@ String generateTestFile({
   required String importPath,
   required List<MethodSpec> methods,
   List<String> extraImports = const [],
+  /// Вызов конструктора получателя (например `Foo(a: 1)` при обязательных именованных параметрах).
+  String? receiverInstantiation,
 }) {
   final buf = StringBuffer();
 
@@ -227,7 +229,8 @@ String generateTestFile({
   buf.writeln('// Сгенерировано: ${DateTime.now().toIso8601String()}');
   buf.writeln();
   buf.writeln('void main() {');
-  buf.writeln('  final ${className.toLowerCase()} = $className();');
+  final recv = receiverInstantiation ?? '$className()';
+  buf.writeln('  final ${className.toLowerCase()} = $recv;');
   buf.writeln();
 
   for (final spec in methods) {

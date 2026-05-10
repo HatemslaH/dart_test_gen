@@ -170,38 +170,46 @@ class _LiteralVisitor extends RecursiveAstVisitor<void> {
   }
 }
 
+String _sampleLiteralForConstructorField(String typeSource, int diagonalIdx) {
+  final t = typeSource.replaceAll(' ', '');
+  final base = t.endsWith('?') ? t.substring(0, t.length - 1) : t;
+  switch (base) {
+    case 'int':
+      return diagonalIdx == 0 ? '0' : '255';
+    case 'double':
+      return diagonalIdx == 0 ? '0.0' : '1.0';
+    case 'bool':
+      return diagonalIdx == 0 ? 'false' : 'true';
+    case 'String':
+      return diagonalIdx == 0 ? "''" : "'test'";
+    default:
+      return '0';
+  }
+}
+
+/// Вызов конструктора с примитивными литералами (позиционные, затем именованные) — для снимков и границ.
+String instantiationExpressionForClass(ClassInfo cls, {int diagonalIdx = 0}) {
+  final parts = <String>[];
+  for (final name in cls.constructorPositionalParams) {
+    final typeSrc = cls.fieldTypes[name] ?? 'dynamic';
+    parts.add(_sampleLiteralForConstructorField(typeSrc, diagonalIdx));
+  }
+  for (final name in cls.constructorNamedParams) {
+    final typeSrc = cls.fieldTypes[name] ?? 'dynamic';
+    parts.add('$name: ${_sampleLiteralForConstructorField(typeSrc, diagonalIdx)}');
+  }
+  return '${cls.name}(${parts.join(', ')})';
+}
+
 /// Two diagonal constructor-call literals using boundary primitives per field type.
 List<String>? _sampleLiteralsForCustomClass(ClassInfo cls) {
-  final names = cls.constructorPositionalParams;
-  if (names.isEmpty) return null;
-
-  String sampleForType(String typeSource, int diagonalIdx) {
-    final t = typeSource.replaceAll(' ', '');
-    final base = t.endsWith('?') ? t.substring(0, t.length - 1) : t;
-    switch (base) {
-      case 'int':
-        return diagonalIdx == 0 ? '0' : '255';
-      case 'double':
-        return diagonalIdx == 0 ? '0.0' : '1.0';
-      case 'bool':
-        return diagonalIdx == 0 ? 'false' : 'true';
-      case 'String':
-        return diagonalIdx == 0 ? "''" : "'test'";
-      default:
-        return '0';
-    }
+  if (cls.constructorPositionalParams.isEmpty && cls.constructorNamedParams.isEmpty) {
+    return null;
   }
-
-  String literalAt(int diagonalIdx) {
-    final args = <String>[];
-    for (final name in names) {
-      final typeSrc = cls.fieldTypes[name] ?? 'dynamic';
-      args.add(sampleForType(typeSrc, diagonalIdx));
-    }
-    return '${cls.name}(${args.join(', ')})';
-  }
-
-  return [literalAt(0), literalAt(1)];
+  return [
+    instantiationExpressionForClass(cls, diagonalIdx: 0),
+    instantiationExpressionForClass(cls, diagonalIdx: 1),
+  ];
 }
 
 Param _paramFor(
@@ -241,7 +249,7 @@ Param _paramFor(
     return create(ParamType.dynamic_);
   }
   if (t is NamedType) {
-    final base = t.name2.lexeme;
+    final base = t.name.lexeme;
     if (_isListOfIntNamedType(t)) {
       return create(ParamType.listInt_);
     }
@@ -268,11 +276,11 @@ Param _paramFor(
 }
 
 bool _isListOfIntNamedType(NamedType t) {
-  if (t.name2.lexeme != 'List') return false;
+  if (t.name.lexeme != 'List') return false;
   final args = t.typeArguments?.arguments;
   if (args == null || args.length != 1) return false;
   final inner = args.single;
-  return inner is NamedType && inner.name2.lexeme == 'int';
+  return inner is NamedType && inner.name.lexeme == 'int';
 }
 
 String _returnTypeString(MethodDeclaration m) {
@@ -285,7 +293,7 @@ bool _isAsyncOrFuture(MethodDeclaration m) {
   if (m.body.isAsynchronous) return true;
   final rt = m.returnType;
   if (rt is NamedType) {
-    final base = rt.name2.lexeme;
+    final base = rt.name.lexeme;
     if (base == 'Future' || base == 'Stream') return true;
   }
   return false;

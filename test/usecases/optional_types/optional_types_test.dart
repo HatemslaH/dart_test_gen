@@ -1,8 +1,11 @@
 import 'package:test/test.dart';
-import 'package:dart_test_gen/usecases/optional_types.dart';
+import 'package:dart_test_gen/usecases/optional_types/optional_types.dart';
+import 'package:dart_test_gen/usecases/optional_types/another_class.dart';
+import 'package:dart_test_gen/usecases/optional_types/custom_item.dart';
+import 'package:dart_test_gen/usecases/optional_types/item_status.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T01:38:10.908399
+// Сгенерировано: 2026-05-11T01:48:21.092759
 
 void main() {
   final optionaltypes = OptionalTypes();
@@ -460,6 +463,116 @@ void main() {
   });
 
   group('processItem', () {
+    test('processItem(CustomItem(id: 0, name: \'\'), multiplier: 0)', () {
+      final item = CustomItem(id: 0, name: '');
+      final multiplier = 0;
+      final expected = 0;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 0, name: \'\'), multiplier: 1)', () {
+      final item = CustomItem(id: 0, name: '');
+      final multiplier = 1;
+      final expected = 0;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 0, name: \'\'), multiplier: -1)', () {
+      final item = CustomItem(id: 0, name: '');
+      final multiplier = -1;
+      final expected = 0;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 0, name: \'\'), multiplier: 2)', () {
+      final item = CustomItem(id: 0, name: '');
+      final multiplier = 2;
+      final expected = 0;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 0, name: \'\'), multiplier: -2)', () {
+      final item = CustomItem(id: 0, name: '');
+      final multiplier = -2;
+      final expected = 0;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 0, name: \'\'), multiplier: 10)', () {
+      final item = CustomItem(id: 0, name: '');
+      final multiplier = 10;
+      final expected = 0;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 0, name: \'\'), multiplier: -10)', () {
+      final item = CustomItem(id: 0, name: '');
+      final multiplier = -10;
+      final expected = 0;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 0, name: \'\'))', () {
+      final item = CustomItem(id: 0, name: '');
+      final expected = 0;
+      final actual = optionaltypes.processItem(item);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 255, name: \'test\'), multiplier: 0)', () {
+      final item = CustomItem(id: 255, name: 'test');
+      final multiplier = 0;
+      final expected = 0;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 255, name: \'test\'), multiplier: 1)', () {
+      final item = CustomItem(id: 255, name: 'test');
+      final multiplier = 1;
+      final expected = 255;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 255, name: \'test\'), multiplier: -1)', () {
+      final item = CustomItem(id: 255, name: 'test');
+      final multiplier = -1;
+      final expected = -255;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 255, name: \'test\'), multiplier: 2)', () {
+      final item = CustomItem(id: 255, name: 'test');
+      final multiplier = 2;
+      final expected = 510;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 255, name: \'test\'), multiplier: -2)', () {
+      final item = CustomItem(id: 255, name: 'test');
+      final multiplier = -2;
+      final expected = -510;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 255, name: \'test\'), multiplier: 10)', () {
+      final item = CustomItem(id: 255, name: 'test');
+      final multiplier = 10;
+      final expected = 2550;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 255, name: \'test\'), multiplier: -10)', () {
+      final item = CustomItem(id: 255, name: 'test');
+      final multiplier = -10;
+      final expected = -2550;
+      final actual = optionaltypes.processItem(item, multiplier: multiplier);
+      expect(actual, expected);
+    });
+    test('processItem(CustomItem(id: 255, name: \'test\'))', () {
+      final item = CustomItem(id: 255, name: 'test');
+      final expected = 255;
+      final actual = optionaltypes.processItem(item);
+      expect(actual, expected);
+    });
   });
 
   group('getAnother', () {

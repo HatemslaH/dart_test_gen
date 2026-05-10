@@ -155,7 +155,10 @@ List<MethodSnapshot> runSnapshots({
   buf.writeln();
   buf.writeln('void main() {');
   buf.writeln('  final out = <Map<String, Object?>>[];');
-  buf.writeln('  final c = ${parsed.className}();');
+  final receiverInfo = parsed.allFileClasses.where((c) => c.name == parsed.className).firstOrNull;
+  final receiverExpr =
+      receiverInfo != null ? instantiationExpressionForClass(receiverInfo) : '${parsed.className}()';
+  buf.writeln('  final c = $receiverExpr;');
   buf.writeln();
 
   for (final m in parsed.methods) {
