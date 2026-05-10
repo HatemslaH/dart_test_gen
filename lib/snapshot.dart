@@ -31,13 +31,31 @@ String _escapeDartString(String s) {
   return s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
 }
 
+void _snapshotVerbose(void Function(String line)? sink, String label, String step, String detail) {
+  sink?.call('[$label]\tsnapshot/$step\t$detail\n');
+}
+
 /// Генерирует исходник раннера, выполняет его и возвращает снимки по методам.
+///
+/// [onSnapshotFraction] — подпрогресс только этапа снимка, от 0 до 1.
+/// [onVerboseLine] — подробные строки (обычно только при `-v`).
+/// [onRunnerFailed] — вывод при падении `dart run` раннера (stderr/stdout).
 List<MethodSnapshot> runSnapshots({
   required String packageRoot,
   required String packageName,
   required String absoluteLibPath,
   required ParsedClass parsed,
+  String logLabel = '',
+  void Function(double fraction01)? onSnapshotFraction,
+  void Function(String line)? onVerboseLine,
+  void Function(String stderrText, String stdoutText)? onRunnerFailed,
 }) {
+  void sl(String step, String detail) => _snapshotVerbose(onVerboseLine, logLabel, step, detail);
+
+  void frac(double v) => onSnapshotFraction?.call(v.clamp(0.0, 1.0));
+
+  frac(0);
+
   final runnerPath = p.join(
     packageRoot,
     '.dart_tool',
@@ -46,6 +64,8 @@ List<MethodSnapshot> runSnapshots({
   );
   File(runnerPath).parent.createSync(recursive: true);
 
+  sl('runner', 'writing temporary script…');
+  frac(0.08);
   final importUri = packageImportUri(packageRoot, packageName, absoluteLibPath);
   final buf = StringBuffer();
   buf.writeln("// ignore_for_file: unused_local_variable");
@@ -127,8 +147,12 @@ List<MethodSnapshot> runSnapshots({
   buf.writeln('}');
 
   File(runnerPath).writeAsStringSync(buf.toString());
+  sl('runner', runnerPath);
+  frac(0.22);
 
   try {
+    sl('process', 'dart run snapshot runner…');
+    frac(0.38);
     final result = Process.runSync(
       Platform.resolvedExecutable,
       ['run', runnerPath],
@@ -136,15 +160,20 @@ List<MethodSnapshot> runSnapshots({
       runInShell: false,
     );
     if (result.exitCode != 0) {
-      stderr.writeln(result.stderr);
-      stderr.writeln(result.stdout);
+      final se = result.stderr.toString();
+      final so = result.stdout.toString();
+      onRunnerFailed?.call(se, so);
+      stderr.write('$se\n$so\n');
       throw StateError('snapshot runner failed: exit ${result.exitCode}');
     }
+    sl('process', 'exit 0, decoding JSON…');
+    frac(0.92);
     final raw = result.stdout as String;
     final decoded = jsonDecode(raw);
     if (decoded is! List) {
       throw StateError('snapshot: ожидался JSON-массив');
     }
+    frac(1.0);
     return _mergeDecoded(parsed, decoded);
   } finally {
     try {

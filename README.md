@@ -1,6 +1,6 @@
 # dart_test_gen
 
-Генератор юнит-тестов для Dart: по файлу из `lib/` строится `test/<имя>_test.dart` с вызовами методов класса. Ожидаемые результаты берутся **снимком** — при генерации код реально выполняется во вспомогательном процессе, а в тесты подставляются литералы (`expect(actual, expected)`).
+Генератор юнит-тестов для Dart: по одному или нескольким файлам (или каталогам) под `lib/` создаются зеркальные `test/<...>/<имя>_test.dart` с вызовами методов класса. Ожидаемые результаты берутся **снимком** — при генерации код реально выполняется во вспомогательном процессе, а в тесты подставляются литералы (`expect(actual, expected)`).
 
 ## Возможности
 
@@ -16,17 +16,39 @@
 
 ```bash
 dart pub get
-dart run bin/generate.dart lib/calculator.dart
-dart run bin/generate.dart lib/data_toolbox.dart
+dart run bin/generate.dart lib/usecases/calculator.dart
+dart run bin/generate.dart lib/usecases/data_toolbox.dart
+dart run bin/generate.dart lib/usecases -v
 ```
 
-Указать класс явно (если в файле несколько классов):
+Несколько целей за раз (каждый файл — в **отдельном изоляте**, генерация параллельная):
 
 ```bash
-dart run bin/generate.dart lib/data_toolbox.dart --class DataToolbox
+dart run bin/generate.dart lib/usecases/calculator.dart lib/usecases/data_toolbox.dart
 ```
 
-Выходной файл: для `lib/foo.dart` создаётся **`test/foo_test.dart`**. После генерации:
+Каталог под `lib/` (рекурсивно все `.dart` только внутри этого дерева после фильтра):
+
+```bash
+dart run bin/generate.dart lib/usecases
+```
+
+Указать класс явно (если в файле несколько классов) — **только если на выходе ровно один** `.dart` файл:
+
+```bash
+dart run bin/generate.dart lib/usecases/foo.dart --class Foo
+```
+
+Выходные тесты **повторяют относительный путь** под `lib/` → под `test/`: например  
+`lib/usecases/foo.dart` → **`test/usecases/foo_test.dart`**.
+
+**Прогресс по умолчанию:** одна строка на `stdout` (полосы и проценты по каждому файлу, `\r` + сброс строки), сразу с первого кадра; после завершения добавляется перевод строки.
+
+**Подробности:** `-v` или `--verbose` — этапы и пути уходят в **`stderr`** (формат `[относительный-путь-под-lib]\tфаза\t…`), прогресс остаётся на `stdout`.
+
+Всё выводится через `stdout`/`stderr.write`, без `print`.
+
+После генерации:
 
 ```bash
 dart test
@@ -34,9 +56,9 @@ dart test
 
 ## Пример цикла разработки
 
-1. Реализуете или меняете класс в `lib/my_service.dart`.
-2. Запускаете `dart run bin/generate.dart lib/my_service.dart`.
-3. Просматриваете или коммитите сгенерированный `test/my_service_test.dart`.
+1. Реализуете или меняете класс, например `lib/features/my_service.dart`.
+2. Запускаете `dart run bin/generate.dart lib/features/my_service.dart` (или папку).
+3. Просматриваете или коммитите `test/features/my_service_test.dart`.
 4. При смене поведения снова запускаете генератор и обновляете снимки (или правите код под уже зафиксированные ожидания).
 
 Снимок кодирует **текущее** поведение: если вы исправляете ошибку в реализации, тесты начнут падать, пока не перегенерируете их или не обновите ожидания осознанно.

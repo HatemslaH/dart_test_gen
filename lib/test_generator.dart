@@ -67,8 +67,7 @@ List<List<String>> generateBoundaryCases(List<Param> params) {
 String _argLabel(List<String> args) => args.join(', ');
 
 /// Имя в `test('…')` — экранируем `'` и `\` в подписи аргументов (`'hello'` и т.д.).
-String _escapeSingleQuoted(String s) =>
-    s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
+String _escapeSingleQuoted(String s) => s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
 
 String _inputDeclarations(List<Param> params, List<String> argLiterals) {
   final buf = StringBuffer();
@@ -164,6 +163,6 @@ String generateTestFile({
 }
 
 void writeTestFile(String path, String content) {
+  File(path).parent.createSync(recursive: true);
   File(path).writeAsStringSync(content);
-  stdout.writeln('✅ Тест-файл записан: $path');
 }
