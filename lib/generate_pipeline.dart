@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 
 import 'cli_log.dart';
 import 'cli_progress.dart';
+import 'gen_config.dart';
+import 'sampling.dart';
 import 'snapshot.dart';
 import 'source_parser.dart';
 import 'test_generator.dart';
@@ -29,6 +31,7 @@ Map<String, Object?> generationIsolateSpawnMessage({
   required String? className,
   required String displayLabel,
   required bool verbose,
+  required GeneratorConfig config,
   required SendPort logPort,
 }) =>
     <String, Object?>{
@@ -38,6 +41,7 @@ Map<String, Object?> generationIsolateSpawnMessage({
       'className': className,
       'displayLabel': displayLabel,
       'verbose': verbose,
+      'config': config,
       'logPort': logPort,
     };
 
@@ -49,6 +53,7 @@ void generationIsolateMain(Map<String, Object?> message) {
   final className = message['className'] as String?;
   final displayLabel = message['displayLabel']! as String;
   final verbose = message['verbose']! as bool;
+  final config = message['config']! as GeneratorConfig;
   final port = message['logPort']! as SendPort;
 
   void bridge({double? progress, String? line, bool? error}) {
@@ -73,6 +78,7 @@ void generationIsolateMain(Map<String, Object?> message) {
       className: className,
       displayLabel: displayLabel,
       verbose: verbose,
+      config: config,
       emit: bridge,
     );
     ok = true;
@@ -86,10 +92,23 @@ void generationIsolateMain(Map<String, Object?> message) {
   port.send(isolateDoneSentinel);
 }
 
-/// Разбор аргументов: пути, `--class`, `-v` / `--verbose`.
-({List<String> inputs, String? className, bool verbose}) parseCliArgs(List<String> args) {
+/// Разбор аргументов: пути, `--class`, `-v` / `--verbose`, sampling flags.
+({
+  List<String> inputs,
+  String? className,
+  bool verbose,
+  String? strategy,
+  int? maxCases,
+  int? seed,
+  String? configPath,
+}) parseCliArgs(List<String> args) {
   String? className;
   var verbose = false;
+  String? strategy;
+  int? maxCases;
+  int? seed;
+  String? configPath;
+
   final rest = <String>[];
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
@@ -97,20 +116,40 @@ void generationIsolateMain(Map<String, Object?> message) {
       className = args[++i];
     } else if (a == '-v' || a == '--verbose') {
       verbose = true;
+    } else if (a == '--strategy' && i + 1 < args.length) {
+      strategy = args[++i];
+    } else if (a == '--max-cases' && i + 1 < args.length) {
+      maxCases = int.tryParse(args[++i]);
+    } else if (a == '--seed' && i + 1 < args.length) {
+      seed = int.tryParse(args[++i]);
+    } else if (a == '--config' && i + 1 < args.length) {
+      configPath = args[++i];
     } else {
       rest.add(a);
     }
   }
   if (rest.isEmpty) {
     CliLog.err(
-      'Использование: dart run bin/generate.dart <путь> [путь …] [--class ClassName] [-v|--verbose]\n'
-      '  путь — файл .dart внутри lib/ или каталог (рекурсивно).\n'
-      '  --class — только при одном целевом .dart после фильтра.\n'
-      '  -v — подробный лог (stderr), прогресс остаётся на stdout.',
+      'Использование: dart run bin/generate.dart <путь> [путь …] [опции]\n'
+      'Опции:\n'
+      '  --class <Name>      только при одном целевом .dart после фильтра.\n'
+      '  -v, --verbose       подробный лог (stderr), прогресс остаётся на stdout.\n'
+      '  --strategy <type>   стратегия сэмплирования: full, random, happy_path.\n'
+      '  --max-cases <N>     макс. кол-во успешных кейсов на метод (по умолчанию 200).\n'
+      '  --seed <N>          зерно для random стратегии.\n'
+      '  --config <path>     путь к файлу конфигурации (по умолчанию dart_test_gen.yaml).',
     );
     exit(64);
   }
-  return (inputs: rest, className: className, verbose: verbose);
+  return (
+    inputs: rest,
+    className: className,
+    verbose: verbose,
+    strategy: strategy,
+    maxCases: maxCases,
+    seed: seed,
+    configPath: configPath,
+  );
 }
 
 String _absolute(String cwd, String userPath) {
@@ -219,6 +258,7 @@ void generateSingleLibraryFile({
   required String? className,
   required String displayLabel,
   required bool verbose,
+  required GeneratorConfig config,
   required EmitGenerationUi emit,
 }) {
   void v(String phase, String detail) {
@@ -289,12 +329,15 @@ void generateSingleLibraryFile({
         rows.add(TestCaseRow(argLiterals: r.argLiterals, expectedLiteral: lit));
       }
     }
+
+    final sampledRows = sampleTestCases(rows, config.forMethod(m.name));
+
     methods.add(
       MethodSpec(
         name: m.name,
         params: m.params,
         returnType: m.returnType,
-        testCases: rows,
+        testCases: sampledRows,
       ),
     );
   }
@@ -362,6 +405,20 @@ Future<void> generateFromCli(List<String> args) async {
   }
 
   final packageName = readPackageName(packageRoot);
+
+  // Load config and apply CLI overrides
+  var config = GeneratorConfig.load(packageRoot, configPath: parsedArgs.configPath);
+  if (parsedArgs.strategy != null || parsedArgs.maxCases != null || parsedArgs.seed != null) {
+    config = GeneratorConfig(
+      defaults: config.defaults.copyWith(
+        strategy: parsedArgs.strategy != null ? SamplingStrategy.fromString(parsedArgs.strategy) : null,
+        maxCases: parsedArgs.maxCases,
+        seed: parsedArgs.seed,
+      ),
+      methods: config.methods,
+    );
+  }
+
   final labels = targets.map((t) => shortLibLabel(t, packageRoot)).toList();
   final ui = GenerationProgressUi.create(labels);
 
@@ -379,6 +436,7 @@ Future<void> generateFromCli(List<String> args) async {
         className: parsedArgs.className,
         displayLabel: label,
         verbose: parsedArgs.verbose,
+        config: config,
         emit: _mainThreadEmit(progressUi: ui, displayLabel: label, verbose: parsedArgs.verbose),
       );
     } catch (e, st) {
@@ -455,6 +513,7 @@ Future<void> generateFromCli(List<String> args) async {
       className: null,
       displayLabel: displayLabel,
       verbose: parsedArgs.verbose,
+      config: config,
       logPort: receivePort.sendPort,
     );
 

@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import '../../lib/usecases/data_toolbox.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-10T15:50:27.982374
+// Сгенерировано: 2026-05-10T16:11:43.109936
 
 void main() {
   final datatoolbox = DataToolbox();
@@ -866,6 +866,10 @@ void main() {
   });
 
   group('acknowledge', () {
+    test('acknowledge(LogLevel.fatal) throws StateError', () {
+      final level = LogLevel.fatal;
+      expect(() => datatoolbox.acknowledge(level), throwsA(isA<StateError>()));
+    });
     test('acknowledge(LogLevel.trace) runs without error', () {
       final level = LogLevel.trace;
       expect(() => datatoolbox.acknowledge(level), returnsNormally);
@@ -873,10 +877,6 @@ void main() {
     test('acknowledge(LogLevel.warning) runs without error', () {
       final level = LogLevel.warning;
       expect(() => datatoolbox.acknowledge(level), returnsNormally);
-    });
-    test('acknowledge(LogLevel.fatal) throws StateError', () {
-      final level = LogLevel.fatal;
-      expect(() => datatoolbox.acknowledge(level), throwsA(isA<StateError>()));
     });
   });
 

@@ -62,7 +62,7 @@ final class GenerationProgressUi {
     } else {
       _redrawSingleCompositeLine();
     }
-    stdout.flush();
+    // stdout.flush();
   }
 
   void _redrawAnsiBlock() {
@@ -113,7 +113,7 @@ final class GenerationProgressUi {
   void finish() {
     if (_dirty) {
       stdout.write('\n');
-      stdout.flush();
+      // stdout.flush();
     }
     _blockWritten = false;
     _dirty = false;
