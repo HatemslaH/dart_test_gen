@@ -14,10 +14,22 @@ class ParsedMethod {
   final List<Param> params;
   final String returnType;
 
+  /// `true` если тело `async` / `async*` или объявленный тип — `Future<…>`.
+  final bool isAsync;
+
+  /// `true` если объявленный тип возврата — `Stream<…>`.
+  final bool isStream;
+
+  /// Развёрнутый тип для снимка и генерации: `Future<T>` → `T`, `Stream<T>` → `List<T>`.
+  final String snapshotReturnType;
+
   const ParsedMethod({
     required this.name,
     required this.params,
     required this.returnType,
+    required this.isAsync,
+    required this.isStream,
+    required this.snapshotReturnType,
   });
 }
 
@@ -289,14 +301,39 @@ String _returnTypeString(MethodDeclaration m) {
   return rt.toSource();
 }
 
-bool _isAsyncOrFuture(MethodDeclaration m) {
-  if (m.body.isAsynchronous) return true;
+String? _futureStreamInner(NamedType rt) {
+  final base = rt.name.lexeme;
+  if (base != 'Future' && base != 'Stream') return null;
+  final args = rt.typeArguments?.arguments;
+  if (args == null || args.isEmpty) return 'dynamic';
+  if (args.length != 1) return null;
+  return args.single.toSource();
+}
+
+String _snapshotReturnTypeForMethod(MethodDeclaration m) {
   final rt = m.returnType;
   if (rt is NamedType) {
     final base = rt.name.lexeme;
-    if (base == 'Future' || base == 'Stream') return true;
+    if (base == 'Future') {
+      return _futureStreamInner(rt) ?? 'dynamic';
+    }
+    if (base == 'Stream') {
+      final inner = _futureStreamInner(rt) ?? 'dynamic';
+      return 'List<$inner>';
+    }
   }
-  return false;
+  return _returnTypeString(m);
+}
+
+bool _methodIsStream(MethodDeclaration m) {
+  final rt = m.returnType;
+  return rt is NamedType && rt.name.lexeme == 'Stream';
+}
+
+bool _methodIsAsync(MethodDeclaration m) {
+  if (m.body.isAsynchronous) return true;
+  final rt = m.returnType;
+  return rt is NamedType && rt.name.lexeme == 'Future';
 }
 
 bool _isSupportedInstanceMethod(MethodDeclaration m) {
@@ -306,7 +343,6 @@ bool _isSupportedInstanceMethod(MethodDeclaration m) {
   if (m.isGetter || m.isSetter) return false;
   if (m.name.lexeme.startsWith('_')) return false;
   if (m.body is EmptyFunctionBody) return false;
-  if (_isAsyncOrFuture(m)) return false;
   return true;
 }
 
@@ -477,6 +513,9 @@ ParsedClass? parseLibraryClassOptional(
         name: m.name.lexeme,
         params: params,
         returnType: _returnTypeString(m),
+        isAsync: _methodIsAsync(m),
+        isStream: _methodIsStream(m),
+        snapshotReturnType: _snapshotReturnTypeForMethod(m),
       ),
     );
   }

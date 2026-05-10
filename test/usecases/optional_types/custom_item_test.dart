@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:dart_test_gen/usecases/optional_types/custom_item.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T01:48:20.821454
+// Сгенерировано: 2026-05-11T02:09:02.659921
 
 void main() {
   final customitem = CustomItem(id: 0, name: '');

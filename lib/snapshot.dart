@@ -153,7 +153,7 @@ List<MethodSnapshot> runSnapshots({
   buf.writeln('  };');
   buf.writeln('}');
   buf.writeln();
-  buf.writeln('void main() {');
+  buf.writeln('Future<void> main() async {');
   buf.writeln('  final out = <Map<String, Object?>>[];');
   final receiverInfo = parsed.allFileClasses.where((c) => c.name == parsed.className).firstOrNull;
   final receiverExpr =
@@ -166,12 +166,18 @@ List<MethodSnapshot> runSnapshots({
     for (final args in cases) {
       final argList = formatArgsForSnapshot(m.params, args);
       final argJson = jsonEncode(args);
-      if (m.returnType == 'void') {
+      if (m.snapshotReturnType == 'void') {
         buf.writeln('  {');
         buf.writeln("    const method = '${_escapeDartString(m.name)}';");
         buf.writeln('    final args = $argJson as List<dynamic>;');
         buf.writeln('    try {');
-        buf.writeln('      c.${m.name}($argList);');
+        if (m.isStream) {
+          buf.writeln('      await c.${m.name}($argList).toList();');
+        } else if (m.isAsync) {
+          buf.writeln('      await c.${m.name}($argList);');
+        } else {
+          buf.writeln('      c.${m.name}($argList);');
+        }
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': true});");
         buf.writeln('    } catch (e) {');
         buf.writeln(
@@ -183,7 +189,13 @@ List<MethodSnapshot> runSnapshots({
         buf.writeln("    const method = '${_escapeDartString(m.name)}';");
         buf.writeln('    final args = $argJson as List<dynamic>;');
         buf.writeln('    try {');
-        buf.writeln('      final v = c.${m.name}($argList);');
+        if (m.isStream) {
+          buf.writeln('      final v = await c.${m.name}($argList).toList();');
+        } else if (m.isAsync) {
+          buf.writeln('      final v = await c.${m.name}($argList);');
+        } else {
+          buf.writeln('      final v = c.${m.name}($argList);');
+        }
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': true, 'value': snapshotValue(v)});");
         buf.writeln('    } catch (e) {');
         buf.writeln(
@@ -253,10 +265,10 @@ List<MethodSnapshot> _mergeDecoded(ParsedClass parsed, List<dynamic> decoded) {
       final argLiterals = List<String>.from(cases[i]);
       final ok = row['ok'] as bool;
       if (ok) {
-        if (m.returnType == 'void') {
+        if (m.snapshotReturnType == 'void') {
           rows.add(SnapshotRow(argLiterals: argLiterals));
         } else {
-          final lit = dartLiteralFromJson(row['value'], m.returnType, parsed.allFileClasses);
+          final lit = dartLiteralFromJson(row['value'], m.snapshotReturnType, parsed.allFileClasses);
           rows.add(SnapshotRow(argLiterals: argLiterals, expectedDartLiteral: lit));
         }
       } else {

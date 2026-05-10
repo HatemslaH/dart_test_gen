@@ -43,12 +43,21 @@ class MethodSpec {
   final String name;
   final List<Param> params;
   final String returnType;
+
+  /// Тип значения для `expect` / void-проверки (`Future<T>` → `T`, `Stream<T>` → `List<T>`).
+  final String snapshotReturnType;
+
+  final bool isAsync;
+  final bool isStream;
   final List<TestCaseRow> testCases;
 
   const MethodSpec({
     required this.name,
     required this.params,
     required this.returnType,
+    required this.snapshotReturnType,
+    this.isAsync = false,
+    this.isStream = false,
     required this.testCases,
   });
 }
@@ -167,15 +176,24 @@ String _renderSuccessTest(String className, MethodSpec spec, TestCaseRow row) {
   final label = _argLabel(spec.params, row.argLiterals);
   final inputs = _inputDeclarations(spec.params, row.argLiterals);
   final callArgs = _callArgs(spec.params, row.argLiterals);
-  final call = '$instance.${spec.name}($callArgs)';
+  final syncCall = '$instance.${spec.name}($callArgs)';
+  final async = spec.isAsync || spec.isStream;
+  final awaitedCall = spec.isStream ? 'await $syncCall.toList()' : 'await $syncCall';
 
   final titleOk = _escapeSingleQuoted('${spec.name}($label)');
-  if (spec.returnType == 'void') {
+  if (spec.snapshotReturnType == 'void') {
     final title = _escapeSingleQuoted('${spec.name}($label) runs without error');
+    if (async) {
+      return '''
+    test('$title', () async {
+$inputs
+      $awaitedCall;
+    });''';
+    }
     return '''
     test('$title', () {
 $inputs
-      expect(() => $call, returnsNormally);
+      expect(() => $syncCall, returnsNormally);
     });''';
   }
 
@@ -184,11 +202,21 @@ $inputs
     throw StateError('expectedLiteral is null for ${spec.name}');
   }
 
+  if (async) {
+    return '''
+    test('$titleOk', () async {
+$inputs
+      final expected = $expected;
+      final actual = $awaitedCall;
+      expect(actual, expected);
+    });''';
+  }
+
   return '''
     test('$titleOk', () {
 $inputs
       final expected = $expected;
-      final actual = $call;
+      final actual = $syncCall;
       expect(actual, expected);
     });''';
 }
@@ -201,6 +229,16 @@ String _renderThrowsTest(String className, MethodSpec spec, TestCaseRow row) {
   final call = '$instance.${spec.name}($callArgs)';
   final ex = row.throwsType ?? 'Object';
   final title = _escapeSingleQuoted('${spec.name}($label) throws $ex');
+  final async = spec.isAsync || spec.isStream;
+  final thrown = spec.isStream ? '$call.toList()' : call;
+
+  if (async) {
+    return '''
+    test('$title', () async {
+$inputs
+      await expectLater($thrown, throwsA(isA<$ex>()));
+    });''';
+  }
 
   return '''
     test('$title', () {

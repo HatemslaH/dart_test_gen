@@ -335,7 +335,7 @@ Future<void> generateSingleLibraryFile({
             throwsType: r.throwsExceptionType,
           ),
         );
-      } else if (m.returnType == 'void') {
+      } else if (m.snapshotReturnType == 'void') {
         rows.add(TestCaseRow(argLiterals: r.argLiterals));
       } else {
         final lit = r.expectedDartLiteral;
@@ -353,6 +353,9 @@ Future<void> generateSingleLibraryFile({
         name: m.name,
         params: m.params,
         returnType: m.returnType,
+        snapshotReturnType: m.snapshotReturnType,
+        isAsync: m.isAsync,
+        isStream: m.isStream,
         testCases: sampledRows,
       ),
     );
