@@ -1,11 +1,15 @@
 import 'dart:io';
 
-enum ParamType { int_, double_, bool_, string_, dynamic_ }
+enum ParamType { int_, double_, bool_, string_, dynamic_, listInt_, enum_ }
 
 class Param {
   final String name;
   final ParamType type;
-  const Param(this.name, this.type);
+
+  /// Если задано (например кейсы enum), подставляется вместо стандартных границ.
+  final List<String>? literalValues;
+
+  const Param(this.name, this.type, {this.literalValues});
 }
 
 /// Одна строка теста после снимка.
@@ -42,6 +46,8 @@ const Map<ParamType, List<String>> _boundaryValues = {
   ParamType.bool_: ['true', 'false'],
   ParamType.string_: ["''", "'hello'", "'  '"],
   ParamType.dynamic_: ['null', '0', "'str'"],
+  ParamType.listInt_: ['<int>[]', '[0]', '[1, -1, 2]'],
+  ParamType.enum_: const [], // только с literalValues
 };
 
 List<List<String>> generateBoundaryCases(List<Param> params) {
@@ -49,7 +55,7 @@ List<List<String>> generateBoundaryCases(List<Param> params) {
 
   List<List<String>> result = [[]];
   for (final param in params) {
-    final values = _boundaryValues[param.type] ?? ['null'];
+    final values = param.literalValues ?? _boundaryValues[param.type] ?? ['null'];
     result = [
       for (final existing in result)
         for (final val in values) [...existing, val],
@@ -59,6 +65,10 @@ List<List<String>> generateBoundaryCases(List<Param> params) {
 }
 
 String _argLabel(List<String> args) => args.join(', ');
+
+/// Имя в `test('…')` — экранируем `'` и `\` в подписи аргументов (`'hello'` и т.д.).
+String _escapeSingleQuoted(String s) =>
+    s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
 
 String _inputDeclarations(List<Param> params, List<String> argLiterals) {
   final buf = StringBuffer();
@@ -77,9 +87,11 @@ String _renderSuccessTest(String className, MethodSpec spec, TestCaseRow row) {
   final callArgs = _callArgs(spec.params);
   final call = '$instance.${spec.name}($callArgs)';
 
+  final titleOk = _escapeSingleQuoted('${spec.name}($label)');
   if (spec.returnType == 'void') {
+    final title = _escapeSingleQuoted('${spec.name}($label) runs without error');
     return '''
-    test('${spec.name}($label) runs without error', () {
+    test('$title', () {
 $inputs
       expect(() => $call, returnsNormally);
     });''';
@@ -91,7 +103,7 @@ $inputs
   }
 
   return '''
-    test('${spec.name}($label)', () {
+    test('$titleOk', () {
 $inputs
       final expected = $expected;
       final actual = $call;
@@ -106,9 +118,10 @@ String _renderThrowsTest(String className, MethodSpec spec, TestCaseRow row) {
   final callArgs = _callArgs(spec.params);
   final call = '$instance.${spec.name}($callArgs)';
   final ex = row.throwsType ?? 'Object';
+  final title = _escapeSingleQuoted('${spec.name}($label) throws $ex');
 
   return '''
-    test('${spec.name}($label) throws $ex', () {
+    test('$title', () {
 $inputs
       expect(() => $call, throwsA(isA<$ex>()));
     });''';

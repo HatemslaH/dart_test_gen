@@ -53,6 +53,39 @@ List<MethodSnapshot> runSnapshots({
   buf.writeln("import 'dart:io';");
   buf.writeln("import '$importUri';");
   buf.writeln();
+  buf.writeln('Object? snapshotValue(Object? v) {');
+  buf.writeln('  if (v == null || v is num || v is bool || v is String) {');
+  buf.writeln('    return v;');
+  buf.writeln('  }');
+  buf.writeln('  if (v is List) {');
+  buf.writeln('    return v.map(snapshotValue).toList();');
+  buf.writeln('  }');
+  buf.writeln('  if (v is Map) {');
+  buf.writeln('    final out = <String, Object?>{};');
+  buf.writeln('    for (final e in v.entries) {');
+  buf.writeln("      out['\${e.key}'] = snapshotValue(e.value);");
+  buf.writeln('    }');
+  buf.writeln('    return out;');
+  buf.writeln('  }');
+  buf.writeln('  try {');
+  buf.writeln('    final dynamic d = v;');
+  buf.writeln('    final n = d.name;');
+  buf.writeln('    if (n is String) {');
+  buf.writeln('      return <String, Object?>{');
+  buf.writeln("        '_enumType': v.runtimeType.toString(),");
+  buf.writeln("        '_enumName': n,");
+  buf.writeln('      };');
+  buf.writeln('    }');
+  buf.writeln('  } catch (_) {}');
+  buf.writeln(r"  if (v.runtimeType.toString() == 'RgbColor') {");
+  buf.writeln('    final dynamic c = v;');
+  buf.writeln('    return <String, Object?>{');
+  buf.writeln("      '_rgb': <Object?>[c.r, c.g, c.b],");
+  buf.writeln('    };');
+  buf.writeln('  }');
+  buf.writeln(r"  throw StateError('unsupported snapshot type ${v.runtimeType}');");
+  buf.writeln('}');
+  buf.writeln();
   buf.writeln('void main() {');
   buf.writeln('  final out = <Map<String, Object?>>[];');
   buf.writeln('  final c = ${parsed.className}();');
@@ -80,10 +113,7 @@ List<MethodSnapshot> runSnapshots({
         buf.writeln('    final args = $argJson as List<dynamic>;');
         buf.writeln('    try {');
         buf.writeln('      final v = c.${m.name}($argList);');
-        buf.writeln('      if (v is! num && v is! bool && v is! String && v != null) {');
-        buf.writeln('        throw StateError("unsupported snapshot result type");');
-        buf.writeln('      }');
-        buf.writeln("      out.add({'method': method, 'args': args, 'ok': true, 'value': v});");
+        buf.writeln("      out.add({'method': method, 'args': args, 'ok': true, 'value': snapshotValue(v)});");
         buf.writeln('    } catch (e) {');
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': false, 'exception': e.runtimeType.toString()});");
         buf.writeln('    }');
@@ -163,8 +193,46 @@ List<MethodSnapshot> _mergeDecoded(ParsedClass parsed, List<dynamic> decoded) {
   return snapshots;
 }
 
+bool _isMapStringIntReturn(String returnType) {
+  final n = returnType.replaceAll(' ', '');
+  return n.startsWith('Map<String,int>') || n.startsWith('Map<String,int>?');
+}
+
+bool _isListIntReturn(String returnType) {
+  final n = returnType.replaceAll(' ', '');
+  return n.startsWith('List<int>') || n.startsWith('List<int>?');
+}
+
 /// Литерал Dart из значения JSON (после снимка).
 String dartLiteralFromJson(dynamic value, String returnType) {
+  if (value is Map) {
+    final m = Map<Object?, Object?>.from(value);
+    if (m.containsKey('_rgb')) {
+      final l = List<Object?>.from(m['_rgb']! as Iterable);
+      return 'RgbColor(${l[0]}, ${l[1]}, ${l[2]})';
+    }
+    if (m['_enumType'] != null && m['_enumName'] != null) {
+      return '${m['_enumType']}.${m['_enumName']}';
+    }
+  }
+
+  if (_isListIntReturn(returnType)) {
+    if (value is! List) throw StateError('List expected, got $value');
+    final parts =
+        value.map((e) => (e as num).toInt().toString()).join(', ');
+    return '[$parts]';
+  }
+
+  if (_isMapStringIntReturn(returnType)) {
+    if (value is! Map) throw StateError('Map expected, got $value');
+    final entries = value.entries.map((e) {
+      final k = '${e.key}';
+      final v = e.value as num;
+      return "'${_escapeDartString(k)}': ${v.toInt()}";
+    }).join(', ');
+    return '{$entries}';
+  }
+
   if (returnType == 'bool') {
     if (value is! bool) throw StateError('bool expected, got $value');
     return value ? 'true' : 'false';
@@ -184,9 +252,6 @@ String dartLiteralFromJson(dynamic value, String returnType) {
   if (returnType == 'String') {
     if (value is! String) throw StateError('String expected, got $value');
     return "'${_escapeDartString(value)}'";
-  }
-  if (returnType == 'dynamic' || returnType.contains('?')) {
-    return dartLiteralFromJsonLoose(value);
   }
   return dartLiteralFromJsonLoose(value);
 }

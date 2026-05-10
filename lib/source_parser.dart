@@ -28,29 +28,69 @@ class ParsedClass {
   const ParsedClass({required this.className, required this.methods});
 }
 
-ParamType _paramTypeFromAnnotation(TypeAnnotation? t) {
-  if (t == null) return ParamType.dynamic_;
-  final name = _namedTypeBaseName(t);
-  if (name == null) return ParamType.dynamic_;
-  switch (name) {
-    case 'int':
-      return ParamType.int_;
-    case 'double':
-      return ParamType.double_;
-    case 'bool':
-      return ParamType.bool_;
-    case 'String':
-      return ParamType.string_;
-    default:
-      return ParamType.dynamic_;
+/// Собирает литералы `EnumName.variant` для всех публичных enum в файле.
+Map<String, List<String>> collectEnumLiterals(CompilationUnit unit) {
+  final map = <String, List<String>>{};
+  for (final d in unit.declarations) {
+    if (d is! EnumDeclaration) continue;
+    final name = d.name.lexeme;
+    if (name.startsWith('_')) continue;
+    final values = <String>[];
+    for (final ec in d.constants) {
+      values.add('$name.${ec.name.lexeme}');
+    }
+    if (values.isEmpty) continue;
+    map[name] = values;
   }
+  return map;
 }
 
-String? _namedTypeBaseName(TypeAnnotation t) {
-  if (t is NamedType) {
-    return t.name2.lexeme;
+Param _paramFor(String paramName, TypeAnnotation? t, Map<String, List<String>> enumLiterals) {
+  if (t == null) {
+    return Param(paramName, ParamType.dynamic_);
   }
-  return null;
+  if (t is NamedType) {
+    final base = t.name2.lexeme;
+    if (_isListOfIntNamedType(t)) {
+      return Param(paramName, ParamType.listInt_);
+    }
+    final enumCases = enumLiterals[base];
+    if (enumCases != null) {
+      return Param(paramName, ParamType.enum_, literalValues: enumCases);
+    }
+    if (base == 'RgbColor') {
+      return Param(
+        paramName,
+        ParamType.dynamic_,
+        literalValues: const [
+          'const RgbColor(0, 0, 0)',
+          'const RgbColor(255, 0, 0)',
+          'const RgbColor(0, 255, 128)',
+        ],
+      );
+    }
+    switch (base) {
+      case 'int':
+        return Param(paramName, ParamType.int_);
+      case 'double':
+        return Param(paramName, ParamType.double_);
+      case 'bool':
+        return Param(paramName, ParamType.bool_);
+      case 'String':
+        return Param(paramName, ParamType.string_);
+      default:
+        return Param(paramName, ParamType.dynamic_);
+    }
+  }
+  return Param(paramName, ParamType.dynamic_);
+}
+
+bool _isListOfIntNamedType(NamedType t) {
+  if (t.name2.lexeme != 'List') return false;
+  final args = t.typeArguments?.arguments;
+  if (args == null || args.length != 1) return false;
+  final inner = args.single;
+  return inner is NamedType && inner.name2.lexeme == 'int';
 }
 
 String _returnTypeString(MethodDeclaration m) {
@@ -79,7 +119,10 @@ bool _isSupportedInstanceMethod(MethodDeclaration m) {
   return true;
 }
 
-List<Param> _paramsFromFormalList(FormalParameterList? list) {
+List<Param> _paramsFromFormalList(
+  FormalParameterList? list,
+  Map<String, List<String>> enumLiterals,
+) {
   if (list == null) return const [];
   final out = <Param>[];
   for (final fp in list.parameters) {
@@ -89,7 +132,7 @@ List<Param> _paramsFromFormalList(FormalParameterList? list) {
       if (paramName == null) {
         return const [];
       }
-      out.add(Param(paramName.lexeme, _paramTypeFromAnnotation(resolved.type)));
+      out.add(_paramFor(paramName.lexeme, resolved.type, enumLiterals));
     } else {
       return const [];
     }
@@ -117,6 +160,24 @@ ClassDeclaration? _findTargetClass(CompilationUnit unit, {String? className}) {
     return null;
   }
 
+  ClassDeclaration? best;
+  var bestScore = -1;
+  for (final c in classes) {
+    if (c.name.lexeme.startsWith('_')) continue;
+    var score = 0;
+    for (final member in c.members) {
+      if (member is! MethodDeclaration) continue;
+      if (!_isSupportedInstanceMethod(member)) continue;
+      if (_hasUnsupportedParameters(member.parameters)) continue;
+      score++;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = c;
+    }
+  }
+  if (best != null) return best;
+
   for (final c in classes) {
     if (!c.name.lexeme.startsWith('_')) return c;
   }
@@ -131,6 +192,8 @@ ParsedClass parseLibraryClass(String absoluteLibPath, {String? className}) {
     throw StateError('Не найден класс в файле: $absoluteLibPath');
   }
 
+  final enumLiterals = collectEnumLiterals(parsed);
+
   final methods = <ParsedMethod>[];
   for (final member in cls.members) {
     if (member is! MethodDeclaration) continue;
@@ -138,7 +201,7 @@ ParsedClass parseLibraryClass(String absoluteLibPath, {String? className}) {
     if (!_isSupportedInstanceMethod(m)) continue;
     if (_hasUnsupportedParameters(m.parameters)) continue;
 
-    final params = _paramsFromFormalList(m.parameters);
+    final params = _paramsFromFormalList(m.parameters, enumLiterals);
     methods.add(
       ParsedMethod(
         name: m.name.lexeme,
