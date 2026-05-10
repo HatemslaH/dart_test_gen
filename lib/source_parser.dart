@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:path/path.dart' as p;
 
 import 'test_generator.dart';
@@ -20,12 +21,35 @@ class ParsedMethod {
   });
 }
 
+class ClassInfo {
+  final String name;
+  final List<String> fields;
+
+  /// Field name → type as written in source (e.g. `int`, `int?`).
+  final Map<String, String> fieldTypes;
+  final List<String> constructorPositionalParams;
+  final List<String> constructorNamedParams;
+
+  const ClassInfo(
+    this.name,
+    this.fields, {
+    this.fieldTypes = const {},
+    this.constructorPositionalParams = const [],
+    this.constructorNamedParams = const [],
+  });
+}
+
 /// Результат разбора одного файла: имя класса и его методы.
 class ParsedClass {
   final String className;
   final List<ParsedMethod> methods;
+  final List<ClassInfo> allFileClasses;
 
-  const ParsedClass({required this.className, required this.methods});
+  const ParsedClass({
+    required this.className,
+    required this.methods,
+    required this.allFileClasses,
+  });
 }
 
 /// Собирает литералы `EnumName.variant` для всех публичных enum в файле.
@@ -45,44 +69,202 @@ Map<String, List<String>> collectEnumLiterals(CompilationUnit unit) {
   return map;
 }
 
-Param _paramFor(String paramName, TypeAnnotation? t, Map<String, List<String>> enumLiterals) {
+List<ClassInfo> _collectAllClasses(CompilationUnit unit) {
+  final out = <ClassInfo>[];
+  for (final d in unit.declarations) {
+    if (d is ClassDeclaration) {
+      final fields = <String>[];
+      final fieldTypes = <String, String>{};
+      for (final member in d.members) {
+        if (member is FieldDeclaration && !member.isStatic) {
+          final typeSource = member.fields.type?.toSource() ?? 'dynamic';
+          for (final v in member.fields.variables) {
+            final name = v.name.lexeme;
+            if (!name.startsWith('_')) {
+              fields.add(name);
+              fieldTypes[name] = typeSource;
+            }
+          }
+        }
+      }
+
+      // Находим основной конструктор (неименованный или первый попавшийся)
+      final positional = <String>[];
+      final named = <String>[];
+      ConstructorDeclaration? primary;
+      for (final member in d.members) {
+        if (member is ConstructorDeclaration) {
+          if (member.name == null) {
+            primary = member;
+            break;
+          }
+          primary ??= member;
+        }
+      }
+
+      if (primary != null) {
+        for (final p in primary.parameters.parameters) {
+          if (p.isNamed) {
+            named.add(p.name!.lexeme);
+          } else {
+            positional.add(p.name!.lexeme);
+          }
+        }
+      }
+
+      out.add(ClassInfo(
+        d.name.lexeme,
+        fields,
+        fieldTypes: fieldTypes,
+        constructorPositionalParams: positional,
+        constructorNamedParams: named,
+      ));
+    }
+  }
+  return out;
+}
+
+List<String> _extractLiteralsFromMethod(MethodDeclaration m, String paramName) {
+  final literals = <String>{};
+  m.body.visitChildren(_LiteralVisitor(paramName, literals));
+  return literals.toList();
+}
+
+class _LiteralVisitor extends RecursiveAstVisitor<void> {
+  final String paramName;
+  final Set<String> literals;
+
+  _LiteralVisitor(this.paramName, this.literals);
+
+  @override
+  void visitBinaryExpression(BinaryExpression node) {
+    if (node.operator.lexeme == '==' || node.operator.lexeme == '!=') {
+      _check(node.leftOperand, node.rightOperand);
+      _check(node.rightOperand, node.leftOperand);
+    }
+    super.visitBinaryExpression(node);
+  }
+
+  @override
+  void visitSwitchCase(SwitchCase node) {
+    // Если switch(paramName)
+    final parent = node.parent;
+    if (parent is SwitchStatement) {
+      final target = parent.expression;
+      if (target is SimpleIdentifier && target.name == paramName) {
+        final expr = node.expression;
+        if (expr is Literal) {
+          literals.add(expr.toSource());
+        }
+      }
+    }
+    super.visitSwitchCase(node);
+  }
+
+  void _check(Expression a, Expression b) {
+    if (a is SimpleIdentifier && a.name == paramName) {
+      if (b is Literal) {
+        literals.add(b.toSource());
+      }
+    }
+  }
+}
+
+/// Two diagonal constructor-call literals using boundary primitives per field type.
+List<String>? _sampleLiteralsForCustomClass(ClassInfo cls) {
+  final names = cls.constructorPositionalParams;
+  if (names.isEmpty) return null;
+
+  String sampleForType(String typeSource, int diagonalIdx) {
+    final t = typeSource.replaceAll(' ', '');
+    final base = t.endsWith('?') ? t.substring(0, t.length - 1) : t;
+    switch (base) {
+      case 'int':
+        return diagonalIdx == 0 ? '0' : '255';
+      case 'double':
+        return diagonalIdx == 0 ? '0.0' : '1.0';
+      case 'bool':
+        return diagonalIdx == 0 ? 'false' : 'true';
+      case 'String':
+        return diagonalIdx == 0 ? "''" : "'test'";
+      default:
+        return '0';
+    }
+  }
+
+  String literalAt(int diagonalIdx) {
+    final args = <String>[];
+    for (final name in names) {
+      final typeSrc = cls.fieldTypes[name] ?? 'dynamic';
+      args.add(sampleForType(typeSrc, diagonalIdx));
+    }
+    return '${cls.name}(${args.join(', ')})';
+  }
+
+  return [literalAt(0), literalAt(1)];
+}
+
+Param _paramFor(
+  String paramName,
+  TypeAnnotation? t,
+  Map<String, List<String>> enumLiterals,
+  List<ClassInfo> allFileClasses, {
+  bool isNullable = false,
+  bool isNamed = false,
+  bool isOptionalPositional = false,
+  String? defaultValueCode,
+  List<String>? extraLiterals,
+}) {
+  Param create(ParamType type, {List<String>? literalValues}) {
+    final combined = <String>{};
+    if (literalValues != null) combined.addAll(literalValues);
+    if (extraLiterals != null) combined.addAll(extraLiterals);
+
+    // Для базовых типов мы хотим сохранить стандартные границы ПЛЮС найденные литералы.
+    // Если мы вернем combined здесь, generateBoundaryCases проигнорирует стандарты.
+    // Поэтому мы помечаем, нужно ли объединять со стандартами.
+    // Но в Param сейчас нет такого поля.
+    // Проще всего в Param.literalValues положить ВСЕ значения, если это не Enum.
+
+    return Param(
+      paramName,
+      type,
+      literalValues: combined.isEmpty ? null : combined.toList(),
+      isNullable: isNullable,
+      isNamed: isNamed,
+      isOptionalPositional: isOptionalPositional,
+      defaultValueCode: defaultValueCode,
+    );
+  }
+
   if (t == null) {
-    return Param(paramName, ParamType.dynamic_);
+    return create(ParamType.dynamic_);
   }
   if (t is NamedType) {
     final base = t.name2.lexeme;
     if (_isListOfIntNamedType(t)) {
-      return Param(paramName, ParamType.listInt_);
+      return create(ParamType.listInt_);
     }
     final enumCases = enumLiterals[base];
     if (enumCases != null) {
-      return Param(paramName, ParamType.enum_, literalValues: enumCases);
-    }
-    if (base == 'RgbColor') {
-      return Param(
-        paramName,
-        ParamType.dynamic_,
-        literalValues: const [
-          'const RgbColor(0, 0, 0)',
-          'const RgbColor(255, 0, 0)',
-          'const RgbColor(0, 255, 128)',
-        ],
-      );
+      return create(ParamType.enum_, literalValues: enumCases);
     }
     switch (base) {
       case 'int':
-        return Param(paramName, ParamType.int_);
+        return create(ParamType.int_);
       case 'double':
-        return Param(paramName, ParamType.double_);
+        return create(ParamType.double_);
       case 'bool':
-        return Param(paramName, ParamType.bool_);
+        return create(ParamType.bool_);
       case 'String':
-        return Param(paramName, ParamType.string_);
+        return create(ParamType.string_);
       default:
-        return Param(paramName, ParamType.dynamic_);
+        final cls = allFileClasses.where((c) => c.name == base).firstOrNull;
+        final customLiterals = cls != null ? _sampleLiteralsForCustomClass(cls) : null;
+        return create(ParamType.custom_, literalValues: customLiterals);
     }
   }
-  return Param(paramName, ParamType.dynamic_);
+  return create(ParamType.dynamic_);
 }
 
 bool _isListOfIntNamedType(NamedType t) {
@@ -113,6 +295,7 @@ bool _isSupportedInstanceMethod(MethodDeclaration m) {
   if (m.parent is! ClassDeclaration) return false;
   if (m.isStatic) return false;
   if (m.operatorKeyword != null) return false;
+  if (m.isGetter || m.isSetter) return false;
   if (m.name.lexeme.startsWith('_')) return false;
   if (m.body is EmptyFunctionBody) return false;
   if (_isAsyncOrFuture(m)) return false;
@@ -122,17 +305,50 @@ bool _isSupportedInstanceMethod(MethodDeclaration m) {
 List<Param> _paramsFromFormalList(
   FormalParameterList? list,
   Map<String, List<String>> enumLiterals,
+  List<ClassInfo> allFileClasses,
+  MethodDeclaration m,
 ) {
   if (list == null) return const [];
   final out = <Param>[];
   for (final fp in list.parameters) {
+    final isNamed = fp.isNamed;
+    final isOptionalPositional = fp.isOptionalPositional;
+    String? defaultValueCode;
+
     final resolved = fp is DefaultFormalParameter ? fp.parameter : fp;
+    if (fp is DefaultFormalParameter) {
+      defaultValueCode = fp.defaultValue?.toSource();
+    }
+
     if (resolved is SimpleFormalParameter) {
       final paramName = resolved.name;
       if (paramName == null) {
         return const [];
       }
-      out.add(_paramFor(paramName.lexeme, resolved.type, enumLiterals));
+
+      final type = resolved.type;
+      bool isNullable = false;
+      if (type == null) {
+        isNullable = true;
+      } else if (type is NamedType) {
+        isNullable = type.question != null;
+      } else if (type is GenericFunctionType) {
+        isNullable = type.question != null;
+      }
+
+      final extraLiterals = _extractLiteralsFromMethod(m, paramName.lexeme);
+
+      out.add(_paramFor(
+        paramName.lexeme,
+        resolved.type,
+        enumLiterals,
+        allFileClasses,
+        isNullable: isNullable,
+        isNamed: isNamed,
+        isOptionalPositional: isOptionalPositional,
+        defaultValueCode: defaultValueCode,
+        extraLiterals: extraLiterals,
+      ));
     } else {
       return const [];
     }
@@ -147,6 +363,13 @@ bool _hasUnsupportedParameters(FormalParameterList? list) {
     if (resolved is! SimpleFormalParameter) return true;
   }
   return false;
+}
+
+/// Имя класса, для которого выполняется генерация (как при разборе без `--class`).
+String? targetClassNameForGeneration(String absoluteLibPath, {String? className}) {
+  final parsed = parseFile(path: absoluteLibPath, featureSet: FeatureSet.latestLanguageVersion()).unit;
+  final cls = _findTargetClass(parsed, className: className);
+  return cls?.name.lexeme;
 }
 
 ClassDeclaration? _findTargetClass(CompilationUnit unit, {String? className}) {
@@ -184,15 +407,54 @@ ClassDeclaration? _findTargetClass(CompilationUnit unit, {String? className}) {
   return classes.first;
 }
 
-/// Разбирает [absoluteLibPath] (файл в `lib/`) и возвращает публичный класс с методами.
-ParsedClass parseLibraryClass(String absoluteLibPath, {String? className}) {
+/// Дополняет [enumLiterals] и [allClasses] объявлениями из указанных файлов [mergeLibAbsolutePaths].
+void _mergeDeclarationsFromLibPaths(
+  Map<String, List<String>> enumLiterals,
+  List<ClassInfo> allClasses,
+  List<String> mergeLibAbsolutePaths,
+) {
+  for (final rawPath in mergeLibAbsolutePaths) {
+    final path = p.normalize(rawPath);
+    try {
+      final unit = parseFile(path: path, featureSet: FeatureSet.latestLanguageVersion()).unit;
+      enumLiterals.addAll(collectEnumLiterals(unit));
+      for (final info in _collectAllClasses(unit)) {
+        final i = allClasses.indexWhere((c) => c.name == info.name);
+        if (i < 0) {
+          allClasses.add(info);
+        } else {
+          allClasses[i] = info;
+        }
+      }
+    } catch (_) {}
+  }
+}
+
+/// Разбирает [absoluteLibPath] (файл в `lib/`).
+///
+/// Возвращает `null`, если при [className] == `null` файл не подходит для генерации:
+/// нет ни одного [ClassDeclaration] (например только enum без класса), либо у целевого класса
+/// нет поддерживаемых методов экземпляра.
+///
+/// Если [className] задан и класс не найден или в нём нет поддерживаемых методов — бросает
+/// [StateError].
+ParsedClass? parseLibraryClassOptional(
+  String absoluteLibPath, {
+  String? className,
+  List<String> mergeLibAbsolutePaths = const [],
+}) {
   final parsed = parseFile(path: absoluteLibPath, featureSet: FeatureSet.latestLanguageVersion()).unit;
   final cls = _findTargetClass(parsed, className: className);
   if (cls == null) {
-    throw StateError('Не найден класс в файле: $absoluteLibPath');
+    if (className != null) {
+      throw StateError('Не найден класс $className в файле: $absoluteLibPath');
+    }
+    return null;
   }
 
-  final enumLiterals = collectEnumLiterals(parsed);
+  final enumLiterals = Map<String, List<String>>.from(collectEnumLiterals(parsed));
+  final allClasses = List<ClassInfo>.from(_collectAllClasses(parsed));
+  _mergeDeclarationsFromLibPaths(enumLiterals, allClasses, mergeLibAbsolutePaths);
 
   final methods = <ParsedMethod>[];
   for (final member in cls.members) {
@@ -201,7 +463,7 @@ ParsedClass parseLibraryClass(String absoluteLibPath, {String? className}) {
     if (!_isSupportedInstanceMethod(m)) continue;
     if (_hasUnsupportedParameters(m.parameters)) continue;
 
-    final params = _paramsFromFormalList(m.parameters, enumLiterals);
+    final params = _paramsFromFormalList(m.parameters, enumLiterals, allClasses, m);
     methods.add(
       ParsedMethod(
         name: m.name.lexeme,
@@ -211,7 +473,38 @@ ParsedClass parseLibraryClass(String absoluteLibPath, {String? className}) {
     );
   }
 
-  return ParsedClass(className: cls.name.lexeme, methods: methods);
+  if (methods.isEmpty) {
+    if (className != null) {
+      throw StateError(
+        'В классе ${cls.name.lexeme} нет поддерживаемых методов экземпляра: $absoluteLibPath',
+      );
+    }
+    return null;
+  }
+
+  return ParsedClass(
+    className: cls.name.lexeme,
+    methods: methods,
+    allFileClasses: allClasses,
+  );
+}
+
+/// Как [parseLibraryClassOptional], но не возвращает `null`: бросает [StateError], если
+/// сгенерировать тесты не из чего.
+ParsedClass parseLibraryClass(
+  String absoluteLibPath, {
+  String? className,
+  List<String> mergeLibAbsolutePaths = const [],
+}) {
+  final r = parseLibraryClassOptional(
+    absoluteLibPath,
+    className: className,
+    mergeLibAbsolutePaths: mergeLibAbsolutePaths,
+  );
+  if (r == null) {
+    throw StateError('Нет класса с поддерживаемыми методами: $absoluteLibPath');
+  }
+  return r;
 }
 
 /// Корень пакета: каталог, содержащий `pubspec.yaml`, для пути к файлу.

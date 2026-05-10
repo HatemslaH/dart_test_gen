@@ -9,6 +9,7 @@ import 'cli_progress.dart';
 import 'gen_config.dart';
 import 'sampling.dart';
 import 'snapshot.dart';
+import 'resolved_dependencies.dart';
 import 'source_parser.dart';
 import 'test_generator.dart';
 
@@ -46,7 +47,7 @@ Map<String, Object?> generationIsolateSpawnMessage({
     };
 
 @pragma('vm:entry-point')
-void generationIsolateMain(Map<String, Object?> message) {
+Future<void> generationIsolateMain(Map<String, Object?> message) async {
   final path = message['absoluteLibPath']! as String;
   final root = message['packageRoot']! as String;
   final pkg = message['packageName']! as String;
@@ -71,7 +72,7 @@ void generationIsolateMain(Map<String, Object?> message) {
 
   var ok = false;
   try {
-    generateSingleLibraryFile(
+    await generateSingleLibraryFile(
       absoluteLibPath: path,
       packageRoot: root,
       packageName: pkg,
@@ -216,11 +217,6 @@ String testOutputPathForLib(String packageRoot, String absoluteLibPath) {
   return p.join(packageRoot, 'test', testTail);
 }
 
-String importPathForTestFile(String testFileAbs, String libFileAbs) {
-  final rel = p.relative(libFileAbs, from: p.dirname(testFileAbs));
-  return rel.replaceAll(r'\', '/');
-}
-
 String shortLibLabel(String absoluteLibPath, String packageRoot) {
   final libRoot = p.join(packageRoot, 'lib');
   try {
@@ -251,7 +247,7 @@ EmitGenerationUi _mainThreadEmit({
 }
 
 /// Одна генерация.
-void generateSingleLibraryFile({
+Future<void> generateSingleLibraryFile({
   required String absoluteLibPath,
   required String packageRoot,
   required String packageName,
@@ -260,7 +256,7 @@ void generateSingleLibraryFile({
   required bool verbose,
   required GeneratorConfig config,
   required EmitGenerationUi emit,
-}) {
+}) async {
   void v(String phase, String detail) {
     if (!verbose) return;
     emit(line: '[$displayLabel]\t$phase\t$detail\n');
@@ -269,9 +265,28 @@ void generateSingleLibraryFile({
   emit(progress: 5);
   v('init', absoluteLibPath);
 
-  final parsed = parseLibraryClass(absoluteLibPath, className: className);
+  final mergePaths = await resolveReferencedLibAbsolutePaths(
+    packageRoot: packageRoot,
+    packageName: packageName,
+    absoluteLibPath: absoluteLibPath,
+    className: className,
+  );
+
+  final parsed = parseLibraryClassOptional(
+    absoluteLibPath,
+    className: className,
+    mergeLibAbsolutePaths: mergePaths,
+  );
+  if (parsed == null) {
+    emit(progress: 100);
+    v('skip', 'нет класса с поддерживаемыми методами');
+    return;
+  }
   emit(progress: 14);
   v('parse', 'class=${parsed.className}, methods=${parsed.methods.length}');
+
+  final extraPackageImports = mergePaths.map((path) => packageImportUri(packageRoot, packageName, path)).toList()
+    ..sort();
 
   const snapStart = 14.0;
   const snapWidth = 54.0;
@@ -281,6 +296,7 @@ void generateSingleLibraryFile({
     packageName: packageName,
     absoluteLibPath: absoluteLibPath,
     parsed: parsed,
+    extraPackageImports: extraPackageImports,
     logLabel: displayLabel,
     onSnapshotFraction: (f) => emit(progress: snapStart + snapWidth * f),
     onVerboseLine: verbose
@@ -344,12 +360,13 @@ void generateSingleLibraryFile({
 
   emit(progress: 78);
   final testOut = testOutputPathForLib(packageRoot, absoluteLibPath);
-  final importPath = importPathForTestFile(testOut, absoluteLibPath);
+  final importPath = packageImportUri(packageRoot, packageName, absoluteLibPath);
   v('render', importPath);
 
   final content = generateTestFile(
     className: parsed.className,
     importPath: importPath,
+    extraImports: extraPackageImports,
     methods: methods,
   );
 
@@ -429,7 +446,7 @@ Future<void> generateFromCli(List<String> args) async {
   if (targets.length == 1) {
     final label = labels.first;
     try {
-      generateSingleLibraryFile(
+      await generateSingleLibraryFile(
         absoluteLibPath: targets.first,
         packageRoot: packageRoot,
         packageName: packageName,
@@ -510,7 +527,7 @@ Future<void> generateFromCli(List<String> args) async {
       absoluteLibPath: libAbs,
       packageRoot: packageRoot,
       packageName: packageName,
-      className: null,
+      className: parsedArgs.className,
       displayLabel: displayLabel,
       verbose: parsedArgs.verbose,
       config: config,

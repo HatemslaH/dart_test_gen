@@ -1,8 +1,10 @@
 import 'package:test/test.dart';
-import '../../lib/usecases/data_toolbox.dart';
+import 'package:dart_test_gen/usecases/data_toolbox/data_toolbox.dart';
+import 'package:dart_test_gen/usecases/data_toolbox/log_level.dart';
+import 'package:dart_test_gen/usecases/data_toolbox/rgb_color.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-10T16:11:43.109936
+// Сгенерировано: 2026-05-11T01:38:10.800186
 
 void main() {
   final datatoolbox = DataToolbox();
@@ -148,13 +150,6 @@ void main() {
       final actual = datatoolbox.describe(level, code);
       expect(actual, expected);
     });
-    test('describe(LogLevel.fatal, -10)', () {
-      final level = LogLevel.fatal;
-      final code = -10;
-      final expected = 'fatal:-10';
-      final actual = datatoolbox.describe(level, code);
-      expect(actual, expected);
-    });
   });
 
   group('weightedMean', () {
@@ -266,363 +261,163 @@ void main() {
   });
 
   group('blend', () {
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 0, 0), 0.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(0, 0, 0), 0.0)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(0, 0, 0);
       final t = 0.0;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 0, 0), 1.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(0, 0, 0), 1.0)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(0, 0, 0);
       final t = 1.0;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 0, 0), -1.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(0, 0, 0), -1.0)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(0, 0, 0);
       final t = -1.0;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 0, 0), 0.5)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(0, 0, 0), 0.5)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(0, 0, 0);
       final t = 0.5;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 0, 0), -0.5)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(0, 0, 0), -0.5)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(0, 0, 0);
       final t = -0.5;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(255, 0, 0), 0.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(255, 255, 255), 0.0)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(255, 255, 255);
       final t = 0.0;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(255, 0, 0), 1.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(255, 255, 255), 1.0)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(255, 255, 255);
       final t = 1.0;
-      final expected = RgbColor(255, 0, 0);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(255, 0, 0), -1.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(255, 255, 255), -1.0)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(255, 255, 255);
       final t = -1.0;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(255, 0, 0), 0.5)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(255, 255, 255), 0.5)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(255, 255, 255);
       final t = 0.5;
-      final expected = RgbColor(128, 0, 0);
+      final expected = RgbColor(128, 128, 128);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(255, 0, 0), -0.5)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(0, 0, 0), RgbColor(255, 255, 255), -0.5)', () {
+      final a = RgbColor(0, 0, 0);
+      final b = RgbColor(255, 255, 255);
       final t = -0.5;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 255, 128), 0.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 255, 128);
+    test('blend(RgbColor(255, 255, 255), RgbColor(0, 0, 0), 0.0)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(0, 0, 0);
       final t = 0.0;
-      final expected = RgbColor(0, 0, 0);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 255, 128), 1.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = 1.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 255, 128), -1.0)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = -1.0;
-      final expected = RgbColor(0, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 255, 128), 0.5)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = 0.5;
-      final expected = RgbColor(0, 128, 64);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 0, 0), const RgbColor(0, 255, 128), -0.5)', () {
-      final a = const RgbColor(0, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = -0.5;
-      final expected = RgbColor(0, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 0, 0), 0.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 0, 0);
-      final t = 0.0;
-      final expected = RgbColor(255, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 0, 0), 1.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(0, 0, 0), 1.0)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(0, 0, 0);
       final t = 1.0;
       final expected = RgbColor(0, 0, 0);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 0, 0), -1.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(0, 0, 0), -1.0)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(0, 0, 0);
       final t = -1.0;
-      final expected = RgbColor(255, 0, 0);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 0, 0), 0.5)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(0, 0, 0), 0.5)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(0, 0, 0);
       final t = 0.5;
-      final expected = RgbColor(128, 0, 0);
+      final expected = RgbColor(128, 128, 128);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 0, 0), -0.5)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(0, 0, 0), -0.5)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(0, 0, 0);
       final t = -0.5;
-      final expected = RgbColor(255, 0, 0);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(255, 0, 0), 0.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(255, 255, 255), 0.0)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(255, 255, 255);
       final t = 0.0;
-      final expected = RgbColor(255, 0, 0);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(255, 0, 0), 1.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(255, 255, 255), 1.0)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(255, 255, 255);
       final t = 1.0;
-      final expected = RgbColor(255, 0, 0);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(255, 0, 0), -1.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(255, 255, 255), -1.0)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(255, 255, 255);
       final t = -1.0;
-      final expected = RgbColor(255, 0, 0);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(255, 0, 0), 0.5)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(255, 255, 255), 0.5)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(255, 255, 255);
       final t = 0.5;
-      final expected = RgbColor(255, 0, 0);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(255, 0, 0), -0.5)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(255, 0, 0);
+    test('blend(RgbColor(255, 255, 255), RgbColor(255, 255, 255), -0.5)', () {
+      final a = RgbColor(255, 255, 255);
+      final b = RgbColor(255, 255, 255);
       final t = -0.5;
-      final expected = RgbColor(255, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 255, 128), 0.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = 0.0;
-      final expected = RgbColor(255, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 255, 128), 1.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = 1.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 255, 128), -1.0)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = -1.0;
-      final expected = RgbColor(255, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 255, 128), 0.5)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = 0.5;
-      final expected = RgbColor(128, 128, 64);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(255, 0, 0), const RgbColor(0, 255, 128), -0.5)', () {
-      final a = const RgbColor(255, 0, 0);
-      final b = const RgbColor(0, 255, 128);
-      final t = -0.5;
-      final expected = RgbColor(255, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 0, 0), 0.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 0, 0);
-      final t = 0.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 0, 0), 1.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 0, 0);
-      final t = 1.0;
-      final expected = RgbColor(0, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 0, 0), -1.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 0, 0);
-      final t = -1.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 0, 0), 0.5)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 0, 0);
-      final t = 0.5;
-      final expected = RgbColor(0, 128, 64);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 0, 0), -0.5)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 0, 0);
-      final t = -0.5;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(255, 0, 0), 0.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(255, 0, 0);
-      final t = 0.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(255, 0, 0), 1.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(255, 0, 0);
-      final t = 1.0;
-      final expected = RgbColor(255, 0, 0);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(255, 0, 0), -1.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(255, 0, 0);
-      final t = -1.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(255, 0, 0), 0.5)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(255, 0, 0);
-      final t = 0.5;
-      final expected = RgbColor(128, 128, 64);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(255, 0, 0), -0.5)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(255, 0, 0);
-      final t = -0.5;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 255, 128), 0.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 255, 128);
-      final t = 0.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 255, 128), 1.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 255, 128);
-      final t = 1.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 255, 128), -1.0)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 255, 128);
-      final t = -1.0;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 255, 128), 0.5)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 255, 128);
-      final t = 0.5;
-      final expected = RgbColor(0, 255, 128);
-      final actual = datatoolbox.blend(a, b, t);
-      expect(actual, expected);
-    });
-    test('blend(const RgbColor(0, 255, 128), const RgbColor(0, 255, 128), -0.5)', () {
-      final a = const RgbColor(0, 255, 128);
-      final b = const RgbColor(0, 255, 128);
-      final t = -0.5;
-      final expected = RgbColor(0, 255, 128);
+      final expected = RgbColor(255, 255, 255);
       final actual = datatoolbox.blend(a, b, t);
       expect(actual, expected);
     });
@@ -766,13 +561,6 @@ void main() {
       final items = [1, -1, 2];
       final x = 10;
       final expected = [1, -1, 2, 10];
-      final actual = datatoolbox.appendIfMissing(items, x);
-      expect(actual, expected);
-    });
-    test('appendIfMissing([1, -1, 2], -10)', () {
-      final items = [1, -1, 2];
-      final x = -10;
-      final expected = [1, -1, 2, -10];
       final actual = datatoolbox.appendIfMissing(items, x);
       expect(actual, expected);
     });

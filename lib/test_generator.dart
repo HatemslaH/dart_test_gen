@@ -1,6 +1,6 @@
 import 'dart:io';
 
-enum ParamType { int_, double_, bool_, string_, dynamic_, listInt_, enum_ }
+enum ParamType { int_, double_, bool_, string_, dynamic_, listInt_, enum_, custom_ }
 
 class Param {
   final String name;
@@ -9,7 +9,20 @@ class Param {
   /// Если задано (например кейсы enum), подставляется вместо стандартных границ.
   final List<String>? literalValues;
 
-  const Param(this.name, this.type, {this.literalValues});
+  final bool isNullable;
+  final bool isNamed;
+  final bool isOptionalPositional;
+  final String? defaultValueCode;
+
+  const Param(
+    this.name,
+    this.type, {
+    this.literalValues,
+    this.isNullable = false,
+    this.isNamed = false,
+    this.isOptionalPositional = false,
+    this.defaultValueCode,
+  });
 }
 
 /// Одна строка теста после снимка.
@@ -45,9 +58,10 @@ const Map<ParamType, List<String>> _boundaryValues = {
   ParamType.double_: ['0.0', '1.0', '-1.0', '0.5', '-0.5'],
   ParamType.bool_: ['true', 'false'],
   ParamType.string_: ["''", "'hello'", "'  '"],
-  ParamType.dynamic_: ['null', '0', "'str'"],
+  ParamType.dynamic_: ['0', "'str'"],
   ParamType.listInt_: ['<int>[]', '[0]', '[1, -1, 2]'],
   ParamType.enum_: const [], // только с literalValues
+  ParamType.custom_: const [], // только с literalValues
 };
 
 List<List<String>> generateBoundaryCases(List<Param> params) {
@@ -55,16 +69,70 @@ List<List<String>> generateBoundaryCases(List<Param> params) {
 
   List<List<String>> result = [[]];
   for (final param in params) {
-    final values = param.literalValues ?? _boundaryValues[param.type] ?? ['null'];
+    final values = <String>{};
+
+    // Всегда добавляем стандартные границы для базовых типов
+    final defaults = _boundaryValues[param.type];
+    if (defaults != null && defaults.isNotEmpty) {
+      values.addAll(defaults);
+    }
+
+    // Добавляем специфичные литералы (из AST или Enum)
+    if (param.literalValues != null) {
+      values.addAll(param.literalValues!);
+    }
+
+    if (param.isNullable) {
+      values.add('null');
+    }
+    if (param.defaultValueCode != null) {
+      values.add(param.defaultValueCode!);
+    }
+    if (param.isNamed || param.isOptionalPositional) {
+      values.add('__OMITTED__');
+    }
+
+    final valuesList = values.toList();
     result = [
       for (final existing in result)
-        for (final val in values) [...existing, val],
+        for (final val in valuesList)
+          if (_isValidCombination(existing, val, params)) [...existing, val],
     ];
   }
   return result;
 }
 
-String _argLabel(List<String> args) => args.join(', ');
+bool _isValidCombination(List<String> existing, String newVal, List<Param> params) {
+  final nextIdx = existing.length;
+  final param = params[nextIdx];
+
+  if (param.isOptionalPositional) {
+    // Если текущий аргумент НЕ пропущен, но какой-то из предыдущих позиционных опциональных БЫЛ пропущен — это невалидно.
+    if (newVal != '__OMITTED__') {
+      for (var i = 0; i < existing.length; i++) {
+        if (params[i].isOptionalPositional && existing[i] == '__OMITTED__') {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+String _argLabel(List<Param> params, List<String> args) {
+  final parts = <String>[];
+  for (var i = 0; i < params.length; i++) {
+    final p = params[i];
+    final val = args[i];
+    if (val == '__OMITTED__') continue;
+    if (p.isNamed) {
+      parts.add('${p.name}: $val');
+    } else {
+      parts.add(val);
+    }
+  }
+  return parts.join(', ');
+}
 
 /// Имя в `test('…')` — экранируем `'` и `\` в подписи аргументов (`'hello'` и т.д.).
 String _escapeSingleQuoted(String s) => s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
@@ -72,18 +140,33 @@ String _escapeSingleQuoted(String s) => s.replaceAll(r'\', r'\\').replaceAll("'"
 String _inputDeclarations(List<Param> params, List<String> argLiterals) {
   final buf = StringBuffer();
   for (var i = 0; i < params.length; i++) {
-    buf.writeln('      final ${params[i].name} = ${argLiterals[i]};');
+    final val = argLiterals[i];
+    if (val == '__OMITTED__') continue;
+    buf.writeln('      final ${params[i].name} = $val;');
   }
   return buf.toString().trimRight();
 }
 
-String _callArgs(List<Param> params) => params.map((p) => p.name).join(', ');
+String _callArgs(List<Param> params, List<String> argLiterals) {
+  final parts = <String>[];
+  for (var i = 0; i < params.length; i++) {
+    final p = params[i];
+    final val = argLiterals[i];
+    if (val == '__OMITTED__') continue;
+    if (p.isNamed) {
+      parts.add('${p.name}: ${p.name}');
+    } else {
+      parts.add(p.name);
+    }
+  }
+  return parts.join(', ');
+}
 
 String _renderSuccessTest(String className, MethodSpec spec, TestCaseRow row) {
   final instance = className.toLowerCase();
-  final label = _argLabel(row.argLiterals);
+  final label = _argLabel(spec.params, row.argLiterals);
   final inputs = _inputDeclarations(spec.params, row.argLiterals);
-  final callArgs = _callArgs(spec.params);
+  final callArgs = _callArgs(spec.params, row.argLiterals);
   final call = '$instance.${spec.name}($callArgs)';
 
   final titleOk = _escapeSingleQuoted('${spec.name}($label)');
@@ -112,9 +195,9 @@ $inputs
 
 String _renderThrowsTest(String className, MethodSpec spec, TestCaseRow row) {
   final instance = className.toLowerCase();
-  final label = _argLabel(row.argLiterals);
+  final label = _argLabel(spec.params, row.argLiterals);
   final inputs = _inputDeclarations(spec.params, row.argLiterals);
-  final callArgs = _callArgs(spec.params);
+  final callArgs = _callArgs(spec.params, row.argLiterals);
   final call = '$instance.${spec.name}($callArgs)';
   final ex = row.throwsType ?? 'Object';
   final title = _escapeSingleQuoted('${spec.name}($label) throws $ex');
@@ -130,11 +213,15 @@ String generateTestFile({
   required String className,
   required String importPath,
   required List<MethodSpec> methods,
+  List<String> extraImports = const [],
 }) {
   final buf = StringBuffer();
 
   buf.writeln("import 'package:test/test.dart';");
   buf.writeln("import '$importPath';");
+  for (final imp in extraImports) {
+    buf.writeln("import '$imp';");
+  }
   buf.writeln();
   buf.writeln('// AUTO-GENERATED — не редактировать вручную');
   buf.writeln('// Сгенерировано: ${DateTime.now().toIso8601String()}');

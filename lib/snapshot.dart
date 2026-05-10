@@ -35,6 +35,36 @@ void _snapshotVerbose(void Function(String line)? sink, String label, String ste
   sink?.call('[$label]\tsnapshot/$step\t$detail\n');
 }
 
+/// Импорты раннера: целевой файл и [extraPackageImports] (доп. `package:` из разрешения API).
+void _writeSnapshotRunnerImports(
+  StringBuffer buf,
+  String packageRoot,
+  String packageName,
+  String absoluteLibPath,
+  List<String> extraPackageImports,
+) {
+  final primaryNorm = p.normalize(absoluteLibPath);
+  buf.writeln("import '${packageImportUri(packageRoot, packageName, primaryNorm)}';");
+  for (final uri in extraPackageImports) {
+    buf.writeln("import '$uri';");
+  }
+}
+
+String formatArgsForSnapshot(List<Param> params, List<String> argLiterals) {
+  final parts = <String>[];
+  for (var i = 0; i < params.length; i++) {
+    final p = params[i];
+    final val = argLiterals[i];
+    if (val == '__OMITTED__') continue;
+    if (p.isNamed) {
+      parts.add('${p.name}: $val');
+    } else {
+      parts.add(val);
+    }
+  }
+  return parts.join(', ');
+}
+
 /// Генерирует исходник раннера, выполняет его и возвращает снимки по методам.
 ///
 /// [onSnapshotFraction] — подпрогресс только этапа снимка, от 0 до 1.
@@ -45,6 +75,7 @@ List<MethodSnapshot> runSnapshots({
   required String packageName,
   required String absoluteLibPath,
   required ParsedClass parsed,
+  List<String> extraPackageImports = const [],
   String logLabel = '',
   void Function(double fraction01)? onSnapshotFraction,
   void Function(String line)? onVerboseLine,
@@ -60,18 +91,17 @@ List<MethodSnapshot> runSnapshots({
     packageRoot,
     '.dart_tool',
     'dart_test_gen',
-    'snapshot_runner_${DateTime.now().microsecondsSinceEpoch}.dart',
+    'snapshot_runner_${parsed.className}_${DateTime.now().microsecondsSinceEpoch}.dart',
   );
   File(runnerPath).parent.createSync(recursive: true);
 
   sl('runner', 'writing temporary script…');
   frac(0.08);
-  final importUri = packageImportUri(packageRoot, packageName, absoluteLibPath);
   final buf = StringBuffer();
   buf.writeln("// ignore_for_file: unused_local_variable");
   buf.writeln("import 'dart:convert';");
   buf.writeln("import 'dart:io';");
-  buf.writeln("import '$importUri';");
+  _writeSnapshotRunnerImports(buf, packageRoot, packageName, absoluteLibPath, extraPackageImports);
   buf.writeln();
   buf.writeln('Object? snapshotValue(Object? v) {');
   buf.writeln('  if (v == null || v is num || v is bool || v is String) {');
@@ -87,23 +117,40 @@ List<MethodSnapshot> runSnapshots({
   buf.writeln('    }');
   buf.writeln('    return out;');
   buf.writeln('  }');
+  buf.writeln('  if (v is Enum) {');
+  buf.writeln('    return <String, Object?>{');
+  buf.writeln("      '_enumType': v.runtimeType.toString(),");
+  buf.writeln("      '_enumName': v.name,");
+  buf.writeln('    };');
+  buf.writeln('  }');
+
+  for (final cls in parsed.allFileClasses) {
+    buf.writeln("  if (v.runtimeType.toString() == '${cls.name}') {");
+    buf.writeln("    final dynamic d = v;");
+    buf.writeln("    return <String, Object?>{");
+    buf.writeln("      '_type': '${cls.name}',");
+    for (final field in cls.fields) {
+      buf.writeln("      '$field': snapshotValue(d.$field),");
+    }
+    buf.writeln("    };");
+    buf.writeln("  }");
+  }
+
   buf.writeln('  try {');
   buf.writeln('    final dynamic d = v;');
-  buf.writeln('    final n = d.name;');
-  buf.writeln('    if (n is String) {');
+  buf.writeln('    final json = d.toJson();');
+  buf.writeln('    if (json is Map<String, dynamic>) {');
   buf.writeln('      return <String, Object?>{');
-  buf.writeln("        '_enumType': v.runtimeType.toString(),");
-  buf.writeln("        '_enumName': n,");
+  buf.writeln("        '_type': v.runtimeType.toString(),");
+  buf.writeln('        ...json.map((k, v) => MapEntry(k, snapshotValue(v))),');
   buf.writeln('      };');
   buf.writeln('    }');
   buf.writeln('  } catch (_) {}');
-  buf.writeln(r"  if (v.runtimeType.toString() == 'RgbColor') {");
-  buf.writeln('    final dynamic c = v;');
-  buf.writeln('    return <String, Object?>{');
-  buf.writeln("      '_rgb': <Object?>[c.r, c.g, c.b],");
-  buf.writeln('    };');
-  buf.writeln('  }');
-  buf.writeln(r"  throw StateError('unsupported snapshot type ${v.runtimeType}');");
+
+  buf.writeln('  return <String, Object?>{');
+  buf.writeln("    '_type': v.runtimeType.toString(),");
+  buf.writeln("    '_value': v.toString(),");
+  buf.writeln('  };');
   buf.writeln('}');
   buf.writeln();
   buf.writeln('void main() {');
@@ -114,7 +161,7 @@ List<MethodSnapshot> runSnapshots({
   for (final m in parsed.methods) {
     final cases = generateBoundaryCases(m.params);
     for (final args in cases) {
-      final argList = args.join(', ');
+      final argList = formatArgsForSnapshot(m.params, args);
       final argJson = jsonEncode(args);
       if (m.returnType == 'void') {
         buf.writeln('  {');
@@ -124,7 +171,8 @@ List<MethodSnapshot> runSnapshots({
         buf.writeln('      c.${m.name}($argList);');
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': true});");
         buf.writeln('    } catch (e) {');
-        buf.writeln("      out.add({'method': method, 'args': args, 'ok': false, 'exception': e.runtimeType.toString()});");
+        buf.writeln(
+            "      out.add({'method': method, 'args': args, 'ok': false, 'exception': e.runtimeType.toString()});");
         buf.writeln('    }');
         buf.writeln('  }');
       } else {
@@ -135,7 +183,8 @@ List<MethodSnapshot> runSnapshots({
         buf.writeln('      final v = c.${m.name}($argList);');
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': true, 'value': snapshotValue(v)});");
         buf.writeln('    } catch (e) {');
-        buf.writeln("      out.add({'method': method, 'args': args, 'ok': false, 'exception': e.runtimeType.toString()});");
+        buf.writeln(
+            "      out.add({'method': method, 'args': args, 'ok': false, 'exception': e.runtimeType.toString()});");
         buf.writeln('    }');
         buf.writeln('  }');
       }
@@ -204,7 +253,7 @@ List<MethodSnapshot> _mergeDecoded(ParsedClass parsed, List<dynamic> decoded) {
         if (m.returnType == 'void') {
           rows.add(SnapshotRow(argLiterals: argLiterals));
         } else {
-          final lit = dartLiteralFromJson(row['value'], m.returnType);
+          final lit = dartLiteralFromJson(row['value'], m.returnType, parsed.allFileClasses);
           rows.add(SnapshotRow(argLiterals: argLiterals, expectedDartLiteral: lit));
         }
       } else {
@@ -233,12 +282,37 @@ bool _isListIntReturn(String returnType) {
 }
 
 /// Литерал Dart из значения JSON (после снимка).
-String dartLiteralFromJson(dynamic value, String returnType) {
+String dartLiteralFromJson(dynamic value, String returnType, List<ClassInfo> allClasses) {
   if (value is Map) {
     final m = Map<Object?, Object?>.from(value);
-    if (m.containsKey('_rgb')) {
-      final l = List<Object?>.from(m['_rgb']! as Iterable);
-      return 'RgbColor(${l[0]}, ${l[1]}, ${l[2]})';
+    if (m.containsKey('_type')) {
+      final type = m['_type'] as String;
+      if (m.containsKey('_value')) {
+        // Fallback for objects we couldn't decompose
+        return m['_value'].toString();
+      }
+
+      final cls = allClasses.where((c) => c.name == type).firstOrNull;
+      if (cls != null) {
+        final args = <String>[];
+        for (final p in cls.constructorPositionalParams) {
+          args.add(dartLiteralFromJsonLoose(m[p]));
+        }
+        for (final p in cls.constructorNamedParams) {
+          args.add('$p: ${dartLiteralFromJsonLoose(m[p])}');
+        }
+        return '$type(${args.join(', ')})';
+      }
+
+      // Fallback if class info not found (e.g. imported class)
+      final fields = <String>[];
+      for (final entry in m.entries) {
+        final k = entry.key as String;
+        if (k == '_type') continue;
+        final v = dartLiteralFromJsonLoose(entry.value);
+        fields.add('$k: $v');
+      }
+      return '$type(${fields.join(', ')})';
     }
     if (m['_enumType'] != null && m['_enumName'] != null) {
       return '${m['_enumType']}.${m['_enumName']}';
@@ -247,8 +321,7 @@ String dartLiteralFromJson(dynamic value, String returnType) {
 
   if (_isListIntReturn(returnType)) {
     if (value is! List) throw StateError('List expected, got $value');
-    final parts =
-        value.map((e) => (e as num).toInt().toString()).join(', ');
+    final parts = value.map((e) => (e as num).toInt().toString()).join(', ');
     return '[$parts]';
   }
 

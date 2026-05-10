@@ -1,22 +1,5 @@
-/// Демонстрационный класс для проверки генератора: смешение типов, enum, коллекции, свой тип.
-
-enum LogLevel { trace, warning, fatal }
-
-/// RGB без alpha — для методов с пользовательским типом.
-class RgbColor {
-  final int r;
-  final int g;
-  final int b;
-
-  const RgbColor(this.r, this.g, this.b);
-
-  @override
-  bool operator ==(Object other) =>
-      other is RgbColor && other.r == r && other.g == g && other.b == b;
-
-  @override
-  int get hashCode => Object.hash(r, g, b);
-}
+import 'package:dart_test_gen/usecases/data_toolbox/log_level.dart';
+import 'package:dart_test_gen/usecases/data_toolbox/rgb_color.dart';
 
 /// Набор утилит с разным числом и типами аргументов и возвращаемых значений.
 class DataToolbox {
