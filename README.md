@@ -73,7 +73,7 @@ methods:
 ## Пример цикла разработки
 
 1. Реализуете или меняете класс, например `lib/features/my_service.dart`.
-2. Запускаете `dart run bin/generate.dart lib/features/my_service.dart` (или папку).
+2. Запускаете `dart run dart_test_gen lib/features/my_service.dart` (или папку).
 3. Просматриваете или коммитите `test/features/my_service_test.dart`.
 4. При смене поведения снова запускаете генератор и обновляете снимки (или правите код под уже зафиксированные ожидания).
 
