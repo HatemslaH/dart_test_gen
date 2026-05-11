@@ -4,7 +4,7 @@ import 'package:dart_test_gen/usecases/data_toolbox/log_level.dart';
 import 'package:dart_test_gen/usecases/data_toolbox/rgb_color.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T17:24:41.651643
+// Сгенерировано: 2026-05-11T19:15:32.778375
 
 void main() {
   final datatoolbox = DataToolbox();

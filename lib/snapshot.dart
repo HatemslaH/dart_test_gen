@@ -6,6 +6,39 @@ import 'package:path/path.dart' as p;
 import 'source_parser.dart';
 import 'test_generator.dart';
 
+/// Structured failure of the snapshot subprocess: compile error or unparsable stdout.
+class SnapshotRunnerFailure implements Exception {
+  /// `'compile'` — the `dart` subprocess exited with a non-zero code.
+  /// `'parse'` — the subprocess succeeded but its stdout did not match the expected payload.
+  final String stage;
+  final String absoluteLibPath;
+  final String? className;
+  final String? methodName;
+  final String runnerPath;
+  final String dartStderrTail;
+  final int? exitCode;
+
+  SnapshotRunnerFailure({
+    required this.stage,
+    required this.absoluteLibPath,
+    required this.runnerPath,
+    required this.dartStderrTail,
+    this.className,
+    this.methodName,
+    this.exitCode,
+  });
+
+  @override
+  String toString() =>
+      'SnapshotRunnerFailure(stage=$stage, lib=$absoluteLibPath, class=$className, method=$methodName, runner=$runnerPath, exit=$exitCode)';
+}
+
+String _tailLines(String text, int maxLines) {
+  final lines = const LineSplitter().convert(text);
+  if (lines.length <= maxLines) return text;
+  return lines.sublist(lines.length - maxLines).join('\n');
+}
+
 /// Одна строка сценария: аргументы-литералы и либо ожидаемое значение, либо тип исключения.
 class SnapshotRow {
   final List<String> argLiterals;
@@ -124,6 +157,7 @@ List<MethodSnapshot> runSnapshots({
   void Function(double fraction01)? onSnapshotFraction,
   void Function(String line)? onVerboseLine,
   void Function(String stderrText, String stdoutText)? onRunnerFailed,
+  bool keepRunner = false,
 }) {
   void sl(String step, String detail) => _snapshotVerbose(onVerboseLine, logLabel, step, detail);
 
@@ -131,13 +165,12 @@ List<MethodSnapshot> runSnapshots({
 
   frac(0);
 
+  final runnerDir = Directory(p.join(Directory.systemTemp.path, 'dart_test_gen'));
+  runnerDir.createSync(recursive: true);
   final runnerPath = p.join(
-    packageRoot,
-    '.dart_tool',
-    'dart_test_gen',
+    runnerDir.path,
     'snapshot_runner_${parsed.className}_${DateTime.now().microsecondsSinceEpoch}.dart',
   );
-  File(runnerPath).parent.createSync(recursive: true);
 
   sl('runner', 'writing temporary script…');
   frac(0.08);
@@ -281,12 +314,14 @@ List<MethodSnapshot> runSnapshots({
   sl('runner', runnerPath);
   frac(0.22);
 
+  var success = false;
   try {
     sl('process', 'dart run snapshot runner…');
     frac(0.38);
+    final packageConfig = p.join(packageRoot, '.dart_tool', 'package_config.json');
     final result = Process.runSync(
       Platform.resolvedExecutable,
-      ['run', runnerPath],
+      ['run', '--packages=$packageConfig', runnerPath],
       workingDirectory: packageRoot,
       runInShell: false,
     );
@@ -294,22 +329,54 @@ List<MethodSnapshot> runSnapshots({
       final se = result.stderr.toString();
       final so = result.stdout.toString();
       onRunnerFailed?.call(se, so);
-      stderr.write('$se\n$so\n');
-      throw StateError('snapshot runner failed: exit ${result.exitCode}');
+      throw SnapshotRunnerFailure(
+        stage: 'compile',
+        absoluteLibPath: absoluteLibPath,
+        className: parsed.className,
+        runnerPath: runnerPath,
+        dartStderrTail: _tailLines(se.isNotEmpty ? se : so, 40),
+        exitCode: result.exitCode,
+      );
     }
     sl('process', 'exit 0, decoding JSON…');
     frac(0.92);
     final raw = result.stdout as String;
-    final decoded = jsonDecode(raw);
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (e) {
+      onRunnerFailed?.call(result.stderr.toString(), raw);
+      throw SnapshotRunnerFailure(
+        stage: 'parse',
+        absoluteLibPath: absoluteLibPath,
+        className: parsed.className,
+        runnerPath: runnerPath,
+        dartStderrTail: _tailLines(
+          'jsonDecode failed: $e\nstdout (head):\n${raw.length > 4000 ? raw.substring(0, 4000) : raw}',
+          40,
+        ),
+      );
+    }
     if (decoded is! List) {
-      throw StateError('snapshot: ожидался JSON-массив');
+      onRunnerFailed?.call(result.stderr.toString(), raw);
+      throw SnapshotRunnerFailure(
+        stage: 'parse',
+        absoluteLibPath: absoluteLibPath,
+        className: parsed.className,
+        runnerPath: runnerPath,
+        dartStderrTail: _tailLines('expected JSON array, got: $decoded', 40),
+      );
     }
     frac(1.0);
-    return _mergeDecoded(parsed, decoded);
+    final merged = _mergeDecoded(parsed, decoded);
+    success = true;
+    return merged;
   } finally {
-    try {
-      File(runnerPath).deleteSync();
-    } catch (_) {}
+    if (success && !keepRunner) {
+      try {
+        File(runnerPath).deleteSync();
+      } catch (_) {}
+    }
   }
 }
 

@@ -16,6 +16,34 @@ import 'test_generator.dart';
 /// UI-колбэк: прогресс 0–100, подробная строка; [error]==true — в stderr всегда.
 typedef EmitGenerationUi = void Function({double? progress, String? line, bool? error});
 
+/// Structured, user-facing rendering of a [SnapshotRunnerFailure].
+String formatSnapshotRunnerFailure(SnapshotRunnerFailure f) {
+  final ctx = StringBuffer('[${f.absoluteLibPath}');
+  if (f.className != null) {
+    ctx.write(' ${f.className}');
+    if (f.methodName != null) ctx.write('.${f.methodName}');
+    ctx.write(']');
+  } else {
+    ctx.write(']');
+  }
+  final tail = f.dartStderrTail.trimRight();
+  final indentedTail = tail.isEmpty
+      ? '    <empty>'
+      : tail.split('\n').map((l) => '    $l').join('\n');
+  return [
+    'Snapshot runner failed (${f.stage}) for $ctx',
+    '  runner kept at: ${f.runnerPath}',
+    if (f.exitCode != null) '  dart exit code: ${f.exitCode}',
+    '  dart stderr (tail):',
+    indentedTail,
+    '  hints:',
+    '    - re-run with -v for the full log',
+    '    - open the runner file to inspect the generated snapshot code',
+    '    - if this looks like a generator bug, attach the runner file to the report',
+    '',
+  ].join('\n');
+}
+
 /// Сообщения из изолята (только sendable-типы).
 const _msgProgress = 'p';
 const _msgVerbose = 'v';
@@ -83,6 +111,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       emit: bridge,
     );
     ok = true;
+  } on SnapshotRunnerFailure catch (f) {
+    bridge(line: formatSnapshotRunnerFailure(f), error: true);
   } catch (e, st) {
     bridge(
       line: 'ERROR\t$e\n$st\n',
@@ -104,6 +134,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   String? configPath,
   bool? useCloseForDouble,
   double? doubleEpsilon,
+  bool? keepRunner,
 }) parseCliArgs(List<String> args) {
   String? className;
   var verbose = false;
@@ -113,6 +144,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   String? configPath;
   bool? useCloseForDouble;
   double? doubleEpsilon;
+  bool? keepRunner;
 
   final rest = <String>[];
   for (var i = 0; i < args.length; i++) {
@@ -131,6 +163,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       configPath = args[++i];
     } else if (a == '--use-close-for-double') {
       useCloseForDouble = true;
+    } else if (a == '--keep-runner') {
+      keepRunner = true;
     } else if (a == '--double-epsilon' && i + 1 < args.length) {
       final raw = args[++i];
       final parsed = double.tryParse(raw);
@@ -168,6 +202,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
     configPath: configPath,
     useCloseForDouble: useCloseForDouble,
     doubleEpsilon: doubleEpsilon,
+    keepRunner: keepRunner,
   );
 }
 
@@ -322,13 +357,19 @@ Future<void> generateSingleLibraryFile({
             emit(line: ln);
           }
         : null,
-    onRunnerFailed: (se, so) {
-      emit(
-        line: 'snapshot runner stderr:\n$se\nsnapshot runner stdout:\n$so\n',
-        error: true,
-      );
-    },
+    onRunnerFailed: verbose
+        ? (se, so) {
+            emit(
+              line: 'snapshot runner stderr:\n$se\nsnapshot runner stdout:\n$so\n',
+              error: true,
+            );
+          }
+        : null,
+    keepRunner: config.keepRunner,
   );
+  if (config.keepRunner) {
+    v('snapshot', 'runner kept (per --keep-runner)');
+  }
 
   emit(progress: 72);
   v('snapshot', 'decode OK');
@@ -461,7 +502,8 @@ Future<void> generateFromCli(List<String> args) async {
       parsedArgs.maxCases != null ||
       parsedArgs.seed != null ||
       parsedArgs.useCloseForDouble != null ||
-      parsedArgs.doubleEpsilon != null) {
+      parsedArgs.doubleEpsilon != null ||
+      parsedArgs.keepRunner != null) {
     config = GeneratorConfig(
       defaults: config.defaults.copyWith(
         strategy: parsedArgs.strategy != null ? SamplingStrategy.fromString(parsedArgs.strategy) : null,
@@ -471,6 +513,7 @@ Future<void> generateFromCli(List<String> args) async {
         doubleEpsilon: parsedArgs.doubleEpsilon,
       ),
       methods: config.methods,
+      keepRunner: parsedArgs.keepRunner ?? config.keepRunner,
     );
   }
 
@@ -494,6 +537,10 @@ Future<void> generateFromCli(List<String> args) async {
         config: config,
         emit: _mainThreadEmit(progressUi: ui, displayLabel: label, verbose: parsedArgs.verbose),
       );
+    } on SnapshotRunnerFailure catch (f) {
+      ui.finish();
+      CliLog.err(formatSnapshotRunnerFailure(f));
+      exit(1);
     } catch (e, st) {
       ui.finish();
       CliLog.err('Ошибка: $e\n$st');

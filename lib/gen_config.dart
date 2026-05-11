@@ -97,10 +97,12 @@ class MethodConfig {
 class GeneratorConfig {
   final MethodConfig defaults;
   final Map<String, MethodConfig> methods;
+  final bool keepRunner;
 
   const GeneratorConfig({
     this.defaults = const MethodConfig(),
     this.methods = const {},
+    this.keepRunner = false,
   });
 
   MethodConfig forMethod(String name) => methods[name] ?? defaults;
@@ -133,7 +135,9 @@ class GeneratorConfig {
         }
       }
 
-      return GeneratorConfig(defaults: defaults, methods: methods);
+      final keepRunner = yaml['keep_runner'] as bool? ?? false;
+
+      return GeneratorConfig(defaults: defaults, methods: methods, keepRunner: keepRunner);
     } catch (e) {
       // Fallback to defaults on error
       return const GeneratorConfig();

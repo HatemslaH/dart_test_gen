@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:dart_test_gen/usecases/data_toolbox/rgb_color.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T17:24:41.426965
+// Сгенерировано: 2026-05-11T19:15:32.190782
 
 void main() {
   final rgbcolor = RgbColor(0, 0, 0);

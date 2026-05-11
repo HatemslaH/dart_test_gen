@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:dart_test_gen/usecases/stress_showcase.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T17:30:22.407836
+// Сгенерировано: 2026-05-11T19:15:32.423942
 
 void main() {
   final stressshowcase = StressShowcase();
