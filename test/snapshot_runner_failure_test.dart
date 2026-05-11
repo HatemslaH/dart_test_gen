@@ -110,8 +110,7 @@ class Broken {
       final match = RegExp(r'runner kept at: (.+)').firstMatch(err);
       expect(match, isNotNull);
       final runnerPath = match!.group(1)!.trim();
-      expect(File(runnerPath).existsSync(), isTrue,
-          reason: 'preserved runner must remain on disk: $runnerPath');
+      expect(File(runnerPath).existsSync(), isTrue, reason: 'preserved runner must remain on disk: $runnerPath');
 
       // The new runner appears in the temp dir and was not in the before-set.
       final afterRunners = _listRunners();
@@ -123,15 +122,14 @@ class Broken {
       final before = _listRunners();
       final r = Process.runSync(
         Platform.resolvedExecutable,
-        ['run', 'dart_test_gen', 'lib/usecases/calculator.dart'],
+        ['run', 'dart_test_gen', 'example/lib/usecases/calculator.dart'],
         workingDirectory: Directory.current.path,
         runInShell: false,
       );
       expect(r.exitCode, 0, reason: 'calculator run should succeed: ${r.stderr}');
       final after = _listRunners();
       final created = after.difference(before);
-      expect(created, isEmpty,
-          reason: 'temp runner files must be cleaned up on success: $created');
+      expect(created, isEmpty, reason: 'temp runner files must be cleaned up on success: $created');
     });
   });
 }
@@ -139,9 +137,5 @@ class Broken {
 Set<String> _listRunners() {
   final dir = Directory(p.join(Directory.systemTemp.path, 'dart_test_gen'));
   if (!dir.existsSync()) return <String>{};
-  return dir
-      .listSync(followLinks: false)
-      .whereType<File>()
-      .map((f) => f.path)
-      .toSet();
+  return dir.listSync(followLinks: false).whereType<File>().map((f) => f.path).toSet();
 }
