@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:example/usecases/type_extensions_showcase/counter_label.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:51.730713
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:02.780103
 
 void main() {
   final counterlabel = CounterLabel(0, '');

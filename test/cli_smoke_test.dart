@@ -31,6 +31,8 @@ void main() {
         '--double-epsilon',
         '--config',
         '--keep-runner',
+        '--dry-run',
+        '--check',
         '--help',
         '--version',
       ]) {

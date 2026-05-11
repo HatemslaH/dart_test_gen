@@ -8,19 +8,19 @@ import 'package:path/path.dart' as p;
 
 import 'test_generator.dart';
 
-/// Описание метода, извлечённого из исходника (до снимка).
+/// Description of a method extracted from source (before snapshotting).
 class ParsedMethod {
   final String name;
   final List<Param> params;
   final String returnType;
 
-  /// `true` если тело `async` / `async*` или объявленный тип — `Future<…>`.
+  /// `true` when the body is `async` / `async*` or the declared type is `Future<…>`.
   final bool isAsync;
 
-  /// `true` если объявленный тип возврата — `Stream<…>`.
+  /// `true` when the declared return type is `Stream<…>`.
   final bool isStream;
 
-  /// Развёрнутый тип для снимка и генерации: `Future<T>` → `T`, `Stream<T>` → `List<T>`.
+  /// Unwrapped type for snapshotting and codegen: `Future<T>` → `T`, `Stream<T>` → `List<T>`.
   final String snapshotReturnType;
 
   final bool isStatic;
@@ -60,7 +60,7 @@ class ClassInfo {
   });
 }
 
-/// Результат разбора одного файла: имя класса и его методы.
+/// Result of parsing a single file: class name and its methods.
 class ParsedClass {
   final String className;
   final List<ParsedMethod> methods;
@@ -73,7 +73,7 @@ class ParsedClass {
   });
 }
 
-/// Собирает литералы `EnumName.variant` для всех публичных enum в файле.
+/// Collects `EnumName.variant` literals for every public enum in the file.
 Map<String, List<String>> collectEnumLiterals(CompilationUnit unit) {
   final map = <String, List<String>>{};
   for (final d in unit.declarations) {
@@ -109,7 +109,7 @@ List<ClassInfo> _collectAllClasses(CompilationUnit unit) {
         }
       }
 
-      // Находим основной конструктор (неименованный или первый попавшийся)
+      // Find the primary constructor (unnamed or first suitable).
       final positional = <String>[];
       final named = <String>[];
       ConstructorDeclaration? primary;
@@ -180,7 +180,7 @@ Expression _unwrapParens(Expression e) {
   return x;
 }
 
-/// Целое из литерала `42` или унарного `-42`.
+/// Integer from a literal `42` or unary `-42`.
 int? _intFromLiteralExpression(Expression e) {
   final u = _unwrapParens(e);
   if (u is IntegerLiteral) return u.value;
@@ -237,7 +237,7 @@ class _LiteralVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitSwitchCase(SwitchCase node) {
-    // Если switch(paramName)
+    // switch(paramName)
     final parent = node.parent;
     if (parent is SwitchStatement) {
       final target = parent.expression;
@@ -277,7 +277,7 @@ String _sampleLiteralForConstructorField(String typeSource, int diagonalIdx) {
   }
 }
 
-/// Вызов конструктора с примитивными литералами (позиционные, затем именованные) — для снимков и границ.
+/// Constructor call with primitive literals (positional, then named) — for snapshots and boundaries.
 String instantiationExpressionForClass(ClassInfo cls, {int diagonalIdx = 0}) {
   final parts = <String>[];
   for (final name in cls.constructorPositionalParams) {
@@ -318,11 +318,10 @@ Param _paramFor(
     if (literalValues != null) combined.addAll(literalValues);
     if (extraLiterals != null) combined.addAll(extraLiterals);
 
-    // Для базовых типов мы хотим сохранить стандартные границы ПЛЮС найденные литералы.
-    // Если мы вернем combined здесь, generateBoundaryCases проигнорирует стандарты.
-    // Поэтому мы помечаем, нужно ли объединять со стандартами.
-    // Но в Param сейчас нет такого поля.
-    // Проще всего в Param.literalValues положить ВСЕ значения, если это не Enum.
+    // For primitive types we want default boundaries PLUS literals found in source.
+    // If we return combined here, generateBoundaryCases skips the defaults.
+    // So we track whether to merge with defaults — Param has no dedicated flag for that.
+    // Easiest fix: put ALL values in Param.literalValues when it's not an enum.
 
     return Param(
       paramName,
@@ -365,7 +364,7 @@ Param _paramFor(
         return create(ParamType.bool_);
       case 'String':
         return create(ParamType.string_);
-      // `operator ==(Object other)` и любые `Object`/`Object?` — допустимые литералы как у dynamic.
+      // `operator ==(Object other)` and `Object`/`Object?` — literals behave like dynamic.
       case 'Object':
         return create(ParamType.dynamic_);
       default:
@@ -415,7 +414,7 @@ String _returnTypeString(MethodDeclaration m) {
   return rt.toSource();
 }
 
-/// Для сеттера в AST тип возврата часто отсутствует — по смыслу это `void`.
+/// For setters the AST often omits return type — semantically this is `void`.
 String _returnTypeStringForMember(MethodDeclaration m, MethodKind kind) {
   if (kind == MethodKind.setter) {
     final rt = m.returnType;
@@ -493,7 +492,7 @@ bool _isSupportedOperator(String op, FormalParameterList? parameters) {
   }
 }
 
-/// Возвращает вид члена, если он поддерживается генератором, иначе `null`.
+/// Returns the member kind when supported by the generator; otherwise `null`.
 MethodKind? _supportedMemberKind(MethodDeclaration m) {
   if (m.parent is! ClassDeclaration && m.parent is! ExtensionTypeDeclaration) return null;
   if (m.name.lexeme.startsWith('_')) return null;
@@ -583,7 +582,7 @@ bool _hasUnsupportedParameters(FormalParameterList? list) {
   return false;
 }
 
-/// Имя класса, для которого выполняется генерация (как при разборе без `--class`).
+/// Class name selected for generation (same heuristic as parsing without `--class`).
 String? targetClassNameForGeneration(String absoluteLibPath, {String? className}) {
   final parsed = parseFile(path: absoluteLibPath, featureSet: FeatureSet.latestLanguageVersion()).unit;
   final cls = _findTargetClassOrExtensionType(parsed, className: className);
@@ -632,7 +631,7 @@ NamedCompilationUnitMember? _findTargetClassOrExtensionType(CompilationUnit unit
   return classesAndExtensions.first;
 }
 
-/// Дополняет [enumLiterals] и [allClasses] объявлениями из указанных файлов [mergeLibAbsolutePaths].
+/// Extends [enumLiterals] and [allClasses] with declarations from [mergeLibAbsolutePaths].
 void _mergeDeclarationsFromLibPaths(
   Map<String, List<String>> enumLiterals,
   List<ClassInfo> allClasses,
@@ -655,14 +654,12 @@ void _mergeDeclarationsFromLibPaths(
   }
 }
 
-/// Разбирает [absoluteLibPath] (файл в `lib/`).
+/// Parses [absoluteLibPath] (a file under `lib/`).
 ///
-/// Возвращает `null`, если при [className] == `null` файл не подходит для генерации:
-/// нет ни одного [ClassDeclaration] (например только enum без класса), либо у целевого класса
-/// нет поддерживаемых методов экземпляра.
+/// Returns `null` when [className] is `null` and the file is not suitable:
+/// no [ClassDeclaration] (e.g. enum-only file), or the target class has no supported instance methods.
 ///
-/// Если [className] задан и класс не найден или в нём нет поддерживаемых методов — бросает
-/// [StateError].
+/// When [className] is set but the class is missing or has no supported methods — throws [StateError].
 ParsedClass? parseLibraryClassOptional(
   String absoluteLibPath, {
   String? className,
@@ -742,8 +739,7 @@ ParsedClass? parseLibraryClassOptional(
   );
 }
 
-/// Как [parseLibraryClassOptional], но не возвращает `null`: бросает [StateError], если
-/// сгенерировать тесты не из чего.
+/// Like [parseLibraryClassOptional], but never returns `null`: throws [StateError] if there is nothing to generate.
 ParsedClass parseLibraryClass(
   String absoluteLibPath, {
   String? className,
@@ -760,7 +756,7 @@ ParsedClass parseLibraryClass(
   return r;
 }
 
-/// Корень пакета: каталог, содержащий `pubspec.yaml`, для пути к файлу.
+/// Package root: directory containing `pubspec.yaml` for the given file path.
 String findPackageRootForFile(String absoluteFilePath) {
   var dir = p.dirname(p.normalize(absoluteFilePath));
   while (true) {

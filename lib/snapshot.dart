@@ -39,7 +39,7 @@ String _tailLines(String text, int maxLines) {
   return lines.sublist(lines.length - maxLines).join('\n');
 }
 
-/// Одна строка сценария: аргументы-литералы и либо ожидаемое значение, либо тип исключения.
+/// One scenario row: argument literals and either the expected return value or the exception type.
 class SnapshotRow {
   final List<String> argLiterals;
   final String? expectedDartLiteral;
@@ -52,7 +52,7 @@ class SnapshotRow {
   });
 }
 
-/// Снимок по одному методу (порядок строк совпадает с порядком граничных комбинаций).
+/// Snapshot for one method (row order matches the boundary-combination order).
 class MethodSnapshot {
   final String methodName;
   final List<SnapshotRow> rows;
@@ -96,7 +96,7 @@ void _snapshotVerbose(void Function(String line)? sink, String label, String ste
   sink?.call('[$label]\tsnapshot/$step\t$detail\n');
 }
 
-/// Импорты раннера: целевой файл и [extraPackageImports] (доп. `package:` из разрешения API).
+/// Runner imports: the target file and [extraPackageImports] (extra `package:` URIs from API resolution).
 void _writeSnapshotRunnerImports(
   StringBuffer buf,
   String packageRoot,
@@ -150,7 +150,7 @@ String _snapshotOperatorExpression(String recv, String op, List<String> argLiter
   }
 }
 
-/// Выражение вызова для раннера снимка (геттер / сеттер / оператор / метод).
+/// Invocation expression for the snapshot runner (getter / setter / operator / method).
 String snapshotInvokeExpression({
   required String className,
   required ParsedMethod m,
@@ -170,11 +170,11 @@ String snapshotInvokeExpression({
   }
 }
 
-/// Генерирует исходник раннера, выполняет его и возвращает снимки по методам.
+/// Generates the runner source, executes it, and returns snapshots per method.
 ///
-/// [onSnapshotFraction] — подпрогресс только этапа снимка, от 0 до 1.
-/// [onVerboseLine] — подробные строки (обычно только при `-v`).
-/// [onRunnerFailed] — вывод при падении `dart run` раннера (stderr/stdout).
+/// [onSnapshotFraction] — sub-progress for the snapshot stage only, 0 to 1.
+/// [onVerboseLine] — verbose lines (typically only with `-v`).
+/// [onRunnerFailed] — output when the `dart run` runner process fails (stderr/stdout).
 List<MethodSnapshot> runSnapshots({
   required String packageRoot,
   required String packageName,
@@ -490,7 +490,7 @@ String? _mapStringValueInnerType(String returnType) {
   return inner;
 }
 
-/// Литерал Dart из значения JSON (после снимка).
+/// Dart literal from a JSON value (after snapshot).
 String dartLiteralFromJson(dynamic value, String returnType, List<ClassInfo> allClasses) {
   if (value is Map) {
     final m = Map<Object?, Object?>.from(value);

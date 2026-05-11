@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:example/usecases/optional_types/another_class.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:51.919419
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:02.826027
 
 void main() {
   final anotherclass = AnotherClass('', 0.0);

@@ -3,8 +3,8 @@ import 'package:example/usecases/data_toolbox/data_toolbox.dart';
 import 'package:example/usecases/data_toolbox/log_level.dart';
 import 'package:example/usecases/data_toolbox/rgb_color.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:52.078041
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:02.912274
 
 void main() {
   final datatoolbox = DataToolbox();

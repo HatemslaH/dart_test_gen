@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:example/usecases/type_extensions_showcase/name_tag.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:51.767517
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:02.715045
 
 void main() {
   final nametag = NameTag('');

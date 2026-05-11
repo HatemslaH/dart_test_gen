@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:example/usecases/optional_types/custom_item.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:51.709379
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:02.715045
 
 void main() {
   final customitem = CustomItem(id: 0, name: '');

@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:example/usecases/calculator.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:53:15.420940
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:50:09.322516
 
 void main() {
   final calculator = Calculator();

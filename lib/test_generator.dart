@@ -1,6 +1,6 @@
 import 'dart:io';
 
-/// Как член класса участвует в снимке и в тестах (метод, геттер, сеттер, оператор).
+/// How a class member participates in snapshots and tests (method, getter, setter, operator).
 enum MethodKind {
   method,
   getter,
@@ -26,7 +26,7 @@ class Param {
   final String name;
   final ParamType type;
 
-  /// Если задано (например кейсы enum), подставляется вместо стандартных границ.
+  /// When set (e.g. enum cases), these override the default boundary values.
   final List<String>? literalValues;
 
   final bool isNullable;
@@ -45,7 +45,7 @@ class Param {
   });
 }
 
-/// Одна строка теста после снимка.
+/// One test-case row after snapshotting.
 class TestCaseRow {
   final List<String> argLiterals;
   final String? expectedLiteral;
@@ -58,13 +58,13 @@ class TestCaseRow {
   });
 }
 
-/// Описание одного метода для генерации тестов.
+/// Descriptor for one method, used for test generation.
 class MethodSpec {
   final String name;
   final List<Param> params;
   final String returnType;
 
-  /// Тип значения для `expect` / void-проверки (`Future<T>` → `T`, `Stream<T>` → `List<T>`).
+  /// Value type for `expect` / void checks (`Future<T>` → `T`, `Stream<T>` → `List<T>`).
   final String snapshotReturnType;
 
   final bool isAsync;
@@ -104,12 +104,12 @@ const Map<ParamType, List<String>> _boundaryValues = {
   ParamType.string_: ["''", "'hello'", "'  '"],
   ParamType.dynamic_: ['0', "'str'"],
   ParamType.listInt_: ['<int>[]', '[0]', '[1, -1, 2]'],
-  // Компактные наборы: те же смысловые границы, что у listInt_ / string_, без лишней комбинаторики.
+  // Compact sets: same semantic boundaries as listInt_/string_, without extra combinatorics.
   ParamType.listString_: ['<String>[]', "['']", "['hello']"],
   ParamType.setInt_: ['<int>{}', '{0}', '{-1, 1}'],
   ParamType.iterableInt_: ['<int>[]', '[0]', '[1, -1, 2]'],
-  ParamType.enum_: const [], // только с literalValues
-  ParamType.custom_: const [], // только с literalValues
+  ParamType.enum_: const [], // only with literalValues
+  ParamType.custom_: const [], // only with literalValues
 };
 
 List<List<String>> generateBoundaryCases(List<Param> params) {
@@ -119,13 +119,13 @@ List<List<String>> generateBoundaryCases(List<Param> params) {
   for (final param in params) {
     final values = <String>{};
 
-    // Всегда добавляем стандартные границы для базовых типов
+    // Always add standard boundaries for primitive types
     final defaults = _boundaryValues[param.type];
     if (defaults != null && defaults.isNotEmpty) {
       values.addAll(defaults);
     }
 
-    // Добавляем специфичные литералы (из AST или Enum)
+    // Add literals specific to the parameter (from AST or enum)
     if (param.literalValues != null) {
       values.addAll(param.literalValues!);
     }
@@ -155,7 +155,7 @@ bool _isValidCombination(List<String> existing, String newVal, List<Param> param
   final param = params[nextIdx];
 
   if (param.isOptionalPositional) {
-    // Если текущий аргумент НЕ пропущен, но какой-то из предыдущих позиционных опциональных БЫЛ пропущен — это невалидно.
+    // If the current arg is not omitted but a previous optional positional was omitted — invalid.
     if (newVal != '__OMITTED__') {
       for (var i = 0; i < existing.length; i++) {
         if (params[i].isOptionalPositional && existing[i] == '__OMITTED__') {
@@ -182,7 +182,7 @@ String _argLabel(List<Param> params, List<String> args) {
   return parts.join(', ');
 }
 
-/// Имя в `test('…')` — экранируем `'` и `\` в подписи аргументов (`'hello'` и т.д.).
+/// Name in `test('…')`: escape `'` and `\` in argument labels (`'hello'`, etc.).
 String _escapeSingleQuoted(String s) => s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
 
 String _inputDeclarations(List<Param> params, List<String> argLiterals) {
@@ -233,7 +233,7 @@ String _operatorTestExpression(String recv, String op, List<Param> params, List<
   }
 }
 
-/// Синхронное выражение вызова для теста (до `await`, если async).
+/// Synchronous invocation expression for the test (before `await` when async).
 String _syncInvokeExpression(
   String className,
   MethodSpec spec,
@@ -260,7 +260,7 @@ String _syncInvokeExpression(
   }
 }
 
-/// Префикс для `group` и подписей тестов: геттер/сеттер с одним именем и операторы не путаются.
+/// Prefix for `group` and test titles: getter/setter with the same name and operators stay distinct.
 String _testGroupName(MethodSpec spec) {
   switch (spec.kind) {
     case MethodKind.getter:
@@ -287,8 +287,8 @@ String _testCaseTitleArgs(MethodSpec spec, String label) {
   }
 }
 
-/// Геттер `hashCode` у экземпляра: не сравниваем с литералом снимка (нестабилен между процессами),
-/// а проверяем согласованность для двух одинаково сконструированных объектов.
+/// Instance getter `hashCode`: do not compare to the snapshot literal (unstable across processes);
+/// instead assert consistency between two identically constructed objects.
 bool _isInstanceHashCodeGetter(MethodSpec spec) =>
     spec.kind == MethodKind.getter && spec.name == 'hashCode' && !spec.isStatic && !spec.isFactory;
 
@@ -410,7 +410,7 @@ String generateTestFile({
   required String importPath,
   required List<MethodSpec> methods,
   List<String> extraImports = const [],
-  /// Вызов конструктора получателя (например `Foo(a: 1)` при обязательных именованных параметрах).
+  /// Receiver constructor call (e.g. `Foo(a: 1)` when named parameters are required).
   String? receiverInstantiation,
 }) {
   final buf = StringBuffer();
@@ -421,8 +421,8 @@ String generateTestFile({
     buf.writeln("import '$imp';");
   }
   buf.writeln();
-  buf.writeln('// AUTO-GENERATED — не редактировать вручную');
-  buf.writeln('// Сгенерировано: ${DateTime.now().toIso8601String()}');
+  buf.writeln('// Auto-generated — do not edit manually');
+  buf.writeln('// Generated: ${DateTime.now().toIso8601String()}');
   buf.writeln();
   buf.writeln('void main() {');
   final receiverExpr = receiverInstantiation ?? '$className()';
@@ -458,4 +458,13 @@ String generateTestFile({
 void writeTestFile(String path, String content) {
   File(path).parent.createSync(recursive: true);
   File(path).writeAsStringSync(content);
+}
+
+/// Removes the generated timestamp banner line (English or legacy Cyrillic prefix).
+/// All other lines are left unchanged. Idempotent.
+String stripGeneratedTimestamp(String content) {
+  return content
+      .split('\n')
+      .where((line) => !line.startsWith('// Generated:') && !line.startsWith('// Сгенерировано:'))
+      .join('\n');
 }

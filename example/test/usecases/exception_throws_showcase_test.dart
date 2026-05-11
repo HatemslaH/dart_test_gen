@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:example/usecases/exception_throws_showcase.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:52.034385
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:02.839450
 
 void main() {
   final exceptionthrowsshowcase = ExceptionThrowsShowcase();

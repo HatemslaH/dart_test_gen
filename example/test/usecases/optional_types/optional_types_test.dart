@@ -4,8 +4,8 @@ import 'package:example/usecases/optional_types/another_class.dart';
 import 'package:example/usecases/optional_types/custom_item.dart';
 import 'package:example/usecases/optional_types/item_status.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:52.121646
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:03.120455
 
 void main() {
   final optionaltypes = OptionalTypes();

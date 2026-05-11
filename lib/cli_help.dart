@@ -22,6 +22,10 @@ Options:
   --double-epsilon <x>         absolute epsilon for closeTo (positive finite number).
   --config <path>              path to config file (default: dart_test_gen.yaml).
   --keep-runner                keep the temporary snapshot runner file on success.
+  --dry-run                    run the full pipeline but do not write any test files;
+                               prints the would-be output paths to stdout.
+  --check                      run the full pipeline but compare generated content to
+                               existing files instead of writing; exits 1 if any differ.
   -h, --help                   show this help and exit.
   --version                    print the package version and exit.
 ''';

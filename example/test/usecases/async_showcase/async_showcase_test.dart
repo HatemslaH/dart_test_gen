@@ -3,8 +3,8 @@ import 'package:example/usecases/async_showcase/async_showcase.dart';
 import 'package:example/usecases/async_showcase/priority.dart';
 import 'package:example/usecases/async_showcase/task_result.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:52.066326
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:02.939651
 
 void main() {
   final asyncshowcase = AsyncShowcase();

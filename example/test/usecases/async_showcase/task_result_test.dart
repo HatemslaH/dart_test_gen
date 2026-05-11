@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:example/usecases/async_showcase/task_result.dart';
 
-// AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T20:31:51.891239
+// Auto-generated — do not edit manually
+// Generated: 2026-05-11T21:35:02.812710
 
 void main() {
   final taskresult = TaskResult('', 0);

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-/// Логирование через [Stdout]/[Stderr].[write], без [print].
+/// Logging via [Stdout]/[Stderr].[write], without [print].
 abstract final class CliLog {
   static void out(String message) => stdout.write('$message\n');
 

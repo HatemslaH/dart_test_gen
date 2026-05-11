@@ -23,9 +23,9 @@ double? yamlScalarToPositiveDouble(Object? value) {
 }
 
 enum SamplingStrategy {
-  full, // все возможные комбинации
-  random, // случайный выбор нескольких комбинаций
-  happyPath; // только успешные пути (без исключений)
+  full, // all possible combinations
+  random, // random selection of several combinations
+  happyPath; // happy paths only (no exceptions)
 
   static SamplingStrategy fromString(String? value) {
     return switch (value?.toLowerCase()) {
@@ -99,10 +99,19 @@ class GeneratorConfig {
   final Map<String, MethodConfig> methods;
   final bool keepRunner;
 
+  /// When true, generation runs but no test files are written; output paths are printed to stdout.
+  final bool dryRun;
+
+  /// When true, generated content is compared to the existing file instead of written.
+  /// Exits with code 1 if any target differs.
+  final bool check;
+
   const GeneratorConfig({
     this.defaults = const MethodConfig(),
     this.methods = const {},
     this.keepRunner = false,
+    this.dryRun = false,
+    this.check = false,
   });
 
   MethodConfig forMethod(String name) => methods[name] ?? defaults;

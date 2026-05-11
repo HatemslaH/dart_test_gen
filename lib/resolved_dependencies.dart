@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 
 import 'source_parser.dart';
 
-/// Собирает URI библиотек, на которые ссылаются типы в сигнатурах (возврат и параметры).
+/// Collects URIs of libraries referenced by types in method signatures (return types and parameters).
 void _collectLibraryUrisFromType(DartType? type, Set<Uri> sink) {
   if (type == null) return;
   if (type is VoidType || type is DynamicType || type is InvalidType) return;
@@ -63,10 +63,10 @@ String? _libAbsolutePathFromLibraryUri(Uri uri, String packageRoot, String packa
   return null;
 }
 
-/// Абсолютные пути `.dart` под `lib/` для библиотек, где объявлены типы из API методов класса.
-/// Не включает сам [absoluteLibPath]. Результат отсортирован.
+/// Absolute paths of `.dart` files under `lib/` for libraries that declare types used in the
+/// class's method API. Does not include [absoluteLibPath] itself. Result is sorted.
 ///
-/// При ошибке анализа или отсутствии класса возвращает пустой список.
+/// Returns an empty list on analysis error or if the class is not found.
 Future<List<String>> resolveReferencedLibAbsolutePaths({
   required String packageRoot,
   required String packageName,

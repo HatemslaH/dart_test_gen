@@ -13,7 +13,7 @@ import 'resolved_dependencies.dart';
 import 'source_parser.dart';
 import 'test_generator.dart';
 
-/// UI-колбэк: прогресс 0–100, подробная строка; [error]==true — в stderr всегда.
+/// UI callback: progress 0–100 and a detail line; [error]==true always goes to stderr.
 typedef EmitGenerationUi = void Function({double? progress, String? line, bool? error});
 
 /// Structured, user-facing rendering of a [SnapshotRunnerFailure].
@@ -44,12 +44,45 @@ String formatSnapshotRunnerFailure(SnapshotRunnerFailure f) {
   ].join('\n');
 }
 
-/// Сообщения из изолята (только sendable-типы).
+/// Messages from the isolate (sendable types only).
 const _msgProgress = 'p';
 const _msgVerbose = 'v';
 const _msgError = 'e';
+const _msgCheckFail = 'cf';
 
-/// После [isolateResultPrefix] идёт [isolateDoneSentinel].
+/// Holds the diff summary for a single `--check` failure.
+class CheckFailure {
+  final String testPath;
+  final String summary;
+  const CheckFailure({required this.testPath, required this.summary});
+}
+
+String _buildCheckSummary(String testPath, String? existingContent, String generatedNormalized) {
+  if (existingContent == null) {
+    return '[check] differs: $testPath\n  expected: <missing>\n';
+  }
+  final existingLines = existingContent.split('\n');
+  final generatedLines = generatedNormalized.split('\n');
+  final maxLen = existingLines.length > generatedLines.length ? existingLines.length : generatedLines.length;
+  for (var i = 0; i < maxLen; i++) {
+    final ex = i < existingLines.length ? existingLines[i] : '<EOF>';
+    final gen = i < generatedLines.length ? generatedLines[i] : '<EOF>';
+    if (ex != gen) {
+      const maxWidth = 160;
+      final exTrunc = ex.length > maxWidth ? '${ex.substring(0, maxWidth)}…' : ex;
+      final genTrunc = gen.length > maxWidth ? '${gen.substring(0, maxWidth)}…' : gen;
+      final absPath = File(testPath).absolute.path;
+      return '[check] differs: $testPath\n'
+          '  expected: $absPath\n'
+          '  first diff at line ${i + 1}:\n'
+          '    -- existing: $exTrunc\n'
+          '    ++ generated: $genTrunc\n';
+    }
+  }
+  return '';
+}
+
+/// [isolateDoneSentinel] follows [isolateResultPrefix].
 const isolateResultPrefix = '__dart_test_gen_result__';
 const isolateDoneSentinel = '__dart_test_gen_isolate_done__';
 
@@ -100,7 +133,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
 
   var ok = false;
   try {
-    await generateSingleLibraryFile(
+    final checkFailure = await generateSingleLibraryFile(
       absoluteLibPath: path,
       packageRoot: root,
       packageName: pkg,
@@ -110,6 +143,9 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       config: config,
       emit: bridge,
     );
+    if (checkFailure != null) {
+      port.send(<String, Object?>{'t': _msgCheckFail, 's': checkFailure.summary});
+    }
     ok = true;
   } on SnapshotRunnerFailure catch (f) {
     bridge(line: formatSnapshotRunnerFailure(f), error: true);
@@ -123,7 +159,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   port.send(isolateDoneSentinel);
 }
 
-/// Разбор аргументов: пути, `--class`, `-v` / `--verbose`, sampling flags.
+/// Parses CLI arguments: paths, `--class`, `-v`/`--verbose`, sampling flags, and mode flags.
 ({
   List<String> inputs,
   String? className,
@@ -135,6 +171,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   bool? useCloseForDouble,
   double? doubleEpsilon,
   bool? keepRunner,
+  bool? dryRun,
+  bool? check,
 }) parseCliArgs(List<String> args) {
   String? className;
   var verbose = false;
@@ -145,6 +183,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   bool? useCloseForDouble;
   double? doubleEpsilon;
   bool? keepRunner;
+  bool? dryRun;
+  bool? check;
 
   final rest = <String>[];
   for (var i = 0; i < args.length; i++) {
@@ -165,6 +205,10 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       useCloseForDouble = true;
     } else if (a == '--keep-runner') {
       keepRunner = true;
+    } else if (a == '--dry-run') {
+      dryRun = true;
+    } else if (a == '--check') {
+      check = true;
     } else if (a == '--double-epsilon' && i + 1 < args.length) {
       final raw = args[++i];
       final parsed = double.tryParse(raw);
@@ -203,6 +247,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
     useCloseForDouble: useCloseForDouble,
     doubleEpsilon: doubleEpsilon,
     keepRunner: keepRunner,
+    dryRun: dryRun,
+    check: check,
   );
 }
 
@@ -212,7 +258,7 @@ String _absolute(String cwd, String userPath) {
   return p.normalize(p.join(cwd, normalized));
 }
 
-/// Все `.dart` файлы под каталогом [dirAbs] (рекурсивно).
+/// All `.dart` files under [dirAbs] (recursive).
 List<String> dartFilesUnderDirectory(String dirAbs) {
   final root = Directory(dirAbs);
   final out = <String>[];
@@ -226,7 +272,7 @@ List<String> dartFilesUnderDirectory(String dirAbs) {
   return out;
 }
 
-/// Раскрывает файлы и каталоги в упорядоченный список `.dart` абсолютных путей.
+/// Expands files and directories into a sorted list of absolute `.dart` paths.
 List<String> expandGenerationTargets(String cwd, List<String> inputs) {
   final seen = <String>{};
   final out = <String>[];
@@ -299,8 +345,11 @@ EmitGenerationUi _mainThreadEmit({
   };
 }
 
-/// Одна генерация.
-Future<void> generateSingleLibraryFile({
+/// Runs generation for a single library file.
+///
+/// Returns a [CheckFailure] when `config.check` is true and the generated
+/// content differs from the existing test file; returns `null` otherwise.
+Future<CheckFailure?> generateSingleLibraryFile({
   required String absoluteLibPath,
   required String packageRoot,
   required String packageName,
@@ -333,7 +382,7 @@ Future<void> generateSingleLibraryFile({
   if (parsed == null) {
     emit(progress: 100);
     v('skip', 'нет класса с поддерживаемыми методами');
-    return;
+    return null;
   }
   emit(progress: 14);
   v('parse', 'class=${parsed.className}, methods=${parsed.methods.length}');
@@ -444,9 +493,35 @@ Future<void> generateSingleLibraryFile({
   );
 
   emit(progress: 90);
+
+  if (config.dryRun) {
+    CliLog.out(testOut);
+    if (verbose) emit(line: content);
+    emit(progress: 100);
+    v('dry-run', testOut);
+    return null;
+  }
+
+  if (config.check) {
+    final existingFile = File(testOut);
+    final existingContent = existingFile.existsSync() ? existingFile.readAsStringSync() : null;
+    final normalizedExisting = existingContent != null ? stripGeneratedTimestamp(existingContent) : null;
+    final normalizedGenerated = stripGeneratedTimestamp(content);
+    if (normalizedExisting == normalizedGenerated) {
+      emit(progress: 100);
+      v('check', 'ok: $testOut');
+      return null;
+    }
+    final summary = _buildCheckSummary(testOut, normalizedExisting, normalizedGenerated);
+    emit(progress: 100);
+    v('check', 'differs: $testOut');
+    return CheckFailure(testPath: testOut, summary: summary);
+  }
+
   writeTestFile(testOut, content);
   emit(progress: 100);
   v('done', testOut);
+  return null;
 }
 
 bool _isDartUnderLib(String absoluteFile, String packageRoot) {
@@ -496,6 +571,12 @@ Future<void> generateFromCli(List<String> args) async {
 
   final packageName = readPackageName(packageRoot);
 
+  // Reject mutually exclusive flags
+  if ((parsedArgs.dryRun ?? false) && (parsedArgs.check ?? false)) {
+    CliLog.err('--dry-run and --check are mutually exclusive: pick one.');
+    exit(64);
+  }
+
   // Load config and apply CLI overrides
   var config = GeneratorConfig.load(packageRoot, configPath: parsedArgs.configPath);
   if (parsedArgs.strategy != null ||
@@ -503,7 +584,9 @@ Future<void> generateFromCli(List<String> args) async {
       parsedArgs.seed != null ||
       parsedArgs.useCloseForDouble != null ||
       parsedArgs.doubleEpsilon != null ||
-      parsedArgs.keepRunner != null) {
+      parsedArgs.keepRunner != null ||
+      parsedArgs.dryRun != null ||
+      parsedArgs.check != null) {
     config = GeneratorConfig(
       defaults: config.defaults.copyWith(
         strategy: parsedArgs.strategy != null ? SamplingStrategy.fromString(parsedArgs.strategy) : null,
@@ -514,6 +597,8 @@ Future<void> generateFromCli(List<String> args) async {
       ),
       methods: config.methods,
       keepRunner: parsedArgs.keepRunner ?? config.keepRunner,
+      dryRun: parsedArgs.dryRun ?? config.dryRun,
+      check: parsedArgs.check ?? config.check,
     );
   }
 
@@ -526,8 +611,9 @@ Future<void> generateFromCli(List<String> args) async {
 
   if (targets.length == 1) {
     final label = labels.first;
+    CheckFailure? checkFailure;
     try {
-      await generateSingleLibraryFile(
+      checkFailure = await generateSingleLibraryFile(
         absoluteLibPath: targets.first,
         packageRoot: packageRoot,
         packageName: packageName,
@@ -547,10 +633,16 @@ Future<void> generateFromCli(List<String> args) async {
       exit(1);
     }
     ui.finish();
+    if (checkFailure != null) {
+      CliLog.err(checkFailure.summary);
+      CliLog.err('[check] 1 file(s) differ');
+      exit(1);
+    }
     return;
   }
 
   final futures = <Future<void>>[];
+  final checkFailureSummaries = <String>[];
 
   for (final libAbs in targets) {
     final receivePort = ReceivePort();
@@ -579,6 +671,11 @@ Future<void> generateFromCli(List<String> args) async {
         if (t == _msgError) {
           final m = message['m'] as String? ?? '';
           CliLog.err(m.endsWith('\n') ? m : '$m\n');
+          return;
+        }
+        if (t == _msgCheckFail) {
+          final s = message['s'] as String? ?? '';
+          checkFailureSummaries.add(s);
           return;
         }
         return;
@@ -640,6 +737,14 @@ Future<void> generateFromCli(List<String> args) async {
   ui.finish();
 
   if (aggregateError != null) {
+    exit(1);
+  }
+
+  if (checkFailureSummaries.isNotEmpty) {
+    for (final s in checkFailureSummaries) {
+      CliLog.err(s);
+    }
+    CliLog.err('[check] ${checkFailureSummaries.length} file(s) differ');
     exit(1);
   }
 }

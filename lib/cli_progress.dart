@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-/// Прогресс 0–100% для набора файлов: составная строка с `\r` или блок строк с ANSI.
+/// Progress 0–100% for a set of files: composite `\r`-line or ANSI block of lines.
 final class GenerationProgressUi {
   GenerationProgressUi._({
     required this.labels,
@@ -36,7 +36,7 @@ final class GenerationProgressUi {
     return ui;
   }
 
-  /// Первый кадр сразу (все 0%).
+  /// Draws the initial frame immediately (all at 0%).
   void drawInitial() => _redraw();
 
   static bool _windowsVt() {
