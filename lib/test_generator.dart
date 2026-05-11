@@ -1,6 +1,18 @@
 import 'dart:io';
 
-enum ParamType { int_, double_, bool_, string_, dynamic_, listInt_, enum_, custom_ }
+enum ParamType {
+  int_,
+  double_,
+  bool_,
+  string_,
+  dynamic_,
+  listInt_,
+  listString_,
+  setInt_,
+  iterableInt_,
+  enum_,
+  custom_,
+}
 
 class Param {
   final String name;
@@ -69,6 +81,10 @@ const Map<ParamType, List<String>> _boundaryValues = {
   ParamType.string_: ["''", "'hello'", "'  '"],
   ParamType.dynamic_: ['0', "'str'"],
   ParamType.listInt_: ['<int>[]', '[0]', '[1, -1, 2]'],
+  // Компактные наборы: те же смысловые границы, что у listInt_ / string_, без лишней комбинаторики.
+  ParamType.listString_: ['<String>[]', "['']", "['hello']"],
+  ParamType.setInt_: ['<int>{}', '{0}', '{-1, 1}'],
+  ParamType.iterableInt_: ['<int>[]', '[0]', '[1, -1, 2]'],
   ParamType.enum_: const [], // только с literalValues
   ParamType.custom_: const [], // только с literalValues
 };

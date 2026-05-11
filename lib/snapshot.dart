@@ -110,6 +110,12 @@ List<MethodSnapshot> runSnapshots({
   buf.writeln('  if (v is List) {');
   buf.writeln('    return v.map(snapshotValue).toList();');
   buf.writeln('  }');
+  buf.writeln('  if (v is Set) {');
+  buf.writeln('    return v.map(snapshotValue).toList();');
+  buf.writeln('  }');
+  buf.writeln('  if (v is Iterable && v is! List && v is! Map && v is! String) {');
+  buf.writeln('    return v.map(snapshotValue).toList();');
+  buf.writeln('  }');
   buf.writeln('  if (v is Map) {');
   buf.writeln('    final out = <String, Object?>{};');
   buf.writeln('    for (final e in v.entries) {');
@@ -286,14 +292,30 @@ List<MethodSnapshot> _mergeDecoded(ParsedClass parsed, List<dynamic> decoded) {
   return snapshots;
 }
 
-bool _isMapStringIntReturn(String returnType) {
-  final n = returnType.replaceAll(' ', '');
-  return n.startsWith('Map<String,int>') || n.startsWith('Map<String,int>?');
+/// `List<T>` / `Set<T>` / `Iterable<T>` with a single simple type token `T` (no nested `<` or `,`).
+String? _collectionSingleTypeArg(String returnType, String collectionKeyword) {
+  var n = returnType.replaceAll(' ', '');
+  if (n.endsWith('?')) n = n.substring(0, n.length - 1);
+  final prefix = '$collectionKeyword<';
+  if (!n.startsWith(prefix) || !n.endsWith('>')) return null;
+  final inner = n.substring(prefix.length, n.length - 1);
+  if (inner.isEmpty || inner.contains('<') || inner.contains('>') || inner.contains(',')) {
+    return null;
+  }
+  return inner;
 }
 
-bool _isListIntReturn(String returnType) {
-  final n = returnType.replaceAll(' ', '');
-  return n.startsWith('List<int>') || n.startsWith('List<int>?');
+/// `Map<String, T>` with a single simple value type token `T`.
+String? _mapStringValueInnerType(String returnType) {
+  var n = returnType.replaceAll(' ', '');
+  if (n.endsWith('?')) n = n.substring(0, n.length - 1);
+  const prefix = 'Map<String,';
+  if (!n.startsWith(prefix) || !n.endsWith('>')) return null;
+  final inner = n.substring(prefix.length, n.length - 1);
+  if (inner.isEmpty || inner.contains(',') || inner.contains('<') || inner.contains('>')) {
+    return null;
+  }
+  return inner;
 }
 
 /// Литерал Dart из значения JSON (после снимка).
@@ -332,22 +354,49 @@ String dartLiteralFromJson(dynamic value, String returnType, List<ClassInfo> all
     if (m['_enumType'] != null && m['_enumName'] != null) {
       return '${m['_enumType']}.${m['_enumName']}';
     }
+
+    final mapInner = _mapStringValueInnerType(returnType);
+    if (mapInner != null) {
+      final parts = <String>[];
+      for (final entry in m.entries) {
+        final k = '${entry.key}';
+        final vLit = dartLiteralFromJson(entry.value, mapInner, allClasses);
+        parts.add("'${_escapeDartString(k)}': $vLit");
+      }
+      return '{${parts.join(', ')}}';
+    }
   }
 
-  if (_isListIntReturn(returnType)) {
-    if (value is! List) throw StateError('List expected, got $value');
-    final parts = value.map((e) => (e as num).toInt().toString()).join(', ');
+  final listInner = _collectionSingleTypeArg(returnType, 'List');
+  if (listInner != null && value is List) {
+    final parts = value.map((dynamic e) => dartLiteralFromJson(e, listInner, allClasses)).toList();
+    return '[${parts.join(', ')}]';
+  }
+
+  final setInner = _collectionSingleTypeArg(returnType, 'Set');
+  if (setInner != null && value is List) {
+    if (value.isEmpty) {
+      return '<$setInner>{}';
+    }
+    if (setInner == 'int') {
+      final lits = <String>[];
+      final nums = <int>[];
+      for (final e in value) {
+        nums.add((e as num).toInt());
+        lits.add(dartLiteralFromJson(e, 'int', allClasses));
+      }
+      final order = List<int>.generate(value.length, (i) => i);
+      order.sort((a, b) => nums[a].compareTo(nums[b]));
+      return '{${order.map((i) => lits[i]).join(', ')}}';
+    }
+    final literals = value.map((dynamic e) => dartLiteralFromJson(e, setInner, allClasses)).toList()..sort();
+    return '{${literals.join(', ')}}';
+  }
+
+  final iterInner = _collectionSingleTypeArg(returnType, 'Iterable');
+  if (iterInner != null && value is List) {
+    final parts = value.map((dynamic e) => dartLiteralFromJson(e, iterInner, allClasses)).join(', ');
     return '[$parts]';
-  }
-
-  if (_isMapStringIntReturn(returnType)) {
-    if (value is! Map) throw StateError('Map expected, got $value');
-    final entries = value.entries.map((e) {
-      final k = '${e.key}';
-      final v = e.value as num;
-      return "'${_escapeDartString(k)}': ${v.toInt()}";
-    }).join(', ');
-    return '{$entries}';
   }
 
   if (returnType == 'bool') {

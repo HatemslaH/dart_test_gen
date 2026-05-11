@@ -265,6 +265,15 @@ Param _paramFor(
     if (_isListOfIntNamedType(t)) {
       return create(ParamType.listInt_);
     }
+    if (_isListOfStringNamedType(t)) {
+      return create(ParamType.listString_);
+    }
+    if (_isSetOfIntNamedType(t)) {
+      return create(ParamType.setInt_);
+    }
+    if (_isIterableOfIntNamedType(t)) {
+      return create(ParamType.iterableInt_);
+    }
     final enumCases = enumLiterals[base];
     if (enumCases != null) {
       return create(ParamType.enum_, literalValues: enumCases);
@@ -289,6 +298,30 @@ Param _paramFor(
 
 bool _isListOfIntNamedType(NamedType t) {
   if (t.name.lexeme != 'List') return false;
+  final args = t.typeArguments?.arguments;
+  if (args == null || args.length != 1) return false;
+  final inner = args.single;
+  return inner is NamedType && inner.name.lexeme == 'int';
+}
+
+bool _isListOfStringNamedType(NamedType t) {
+  if (t.name.lexeme != 'List') return false;
+  final args = t.typeArguments?.arguments;
+  if (args == null || args.length != 1) return false;
+  final inner = args.single;
+  return inner is NamedType && inner.name.lexeme == 'String';
+}
+
+bool _isSetOfIntNamedType(NamedType t) {
+  if (t.name.lexeme != 'Set') return false;
+  final args = t.typeArguments?.arguments;
+  if (args == null || args.length != 1) return false;
+  final inner = args.single;
+  return inner is NamedType && inner.name.lexeme == 'int';
+}
+
+bool _isIterableOfIntNamedType(NamedType t) {
+  if (t.name.lexeme != 'Iterable') return false;
   final args = t.typeArguments?.arguments;
   if (args == null || args.length != 1) return false;
   final inner = args.single;
