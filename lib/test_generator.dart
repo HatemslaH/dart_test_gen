@@ -1,5 +1,13 @@
 import 'dart:io';
 
+/// Как член класса участвует в снимке и в тестах (метод, геттер, сеттер, оператор).
+enum MethodKind {
+  method,
+  getter,
+  setter,
+  operator_,
+}
+
 enum ParamType {
   int_,
   double_,
@@ -63,6 +71,7 @@ class MethodSpec {
   final bool isStream;
   final bool isStatic;
   final bool isFactory;
+  final MethodKind kind;
   final List<TestCaseRow> testCases;
 
   const MethodSpec({
@@ -74,6 +83,7 @@ class MethodSpec {
     this.isStream = false,
     this.isStatic = false,
     this.isFactory = false,
+    this.kind = MethodKind.method,
     required this.testCases,
   });
 }
@@ -191,31 +201,119 @@ String _callArgs(List<Param> params, List<String> argLiterals) {
   return parts.join(', ');
 }
 
-String _renderSuccessTest(String className, MethodSpec spec, TestCaseRow row) {
+String _operatorTestExpression(String recv, String op, List<Param> params, List<String> argLiterals) {
+  String nameAt(int i) {
+    if (i >= argLiterals.length || argLiterals[i] == '__OMITTED__') {
+      throw StateError('operator $op: missing arg at index $i');
+    }
+    return params[i].name;
+  }
+
+  switch (op) {
+    case '[]':
+      return '$recv[${nameAt(0)}]';
+    case '[]=':
+      return '$recv[${nameAt(0)}] = ${nameAt(1)}';
+    case '~':
+      return '~$recv';
+    case '-':
+      if (params.isEmpty) return '-$recv';
+      return '$recv - ${nameAt(0)}';
+    default:
+      return '$recv $op ${nameAt(0)}';
+  }
+}
+
+/// Синхронное выражение вызова для теста (до `await`, если async).
+String _syncInvokeExpression(
+  String className,
+  MethodSpec spec,
+  String callArgs,
+  List<String> argLiterals,
+) {
   final instance = className.toLowerCase();
+  if (spec.isFactory) {
+    if (spec.name.isEmpty) {
+      return '$className($callArgs)';
+    }
+    return '$className.${spec.name}($callArgs)';
+  }
+  final recv = spec.isStatic ? className : instance;
+  switch (spec.kind) {
+    case MethodKind.getter:
+      return '$recv.${spec.name}';
+    case MethodKind.setter:
+      return '$recv.${spec.name} = $callArgs';
+    case MethodKind.operator_:
+      return _operatorTestExpression(recv, spec.name, spec.params, argLiterals);
+    case MethodKind.method:
+      return '$recv.${spec.name}($callArgs)';
+  }
+}
+
+/// Префикс для `group` и подписей тестов: геттер/сеттер с одним именем и операторы не путаются.
+String _testGroupName(MethodSpec spec) {
+  switch (spec.kind) {
+    case MethodKind.getter:
+      return 'getter ${spec.name}';
+    case MethodKind.setter:
+      return 'setter ${spec.name}';
+    case MethodKind.operator_:
+      return 'operator ${spec.name}';
+    case MethodKind.method:
+      return spec.name;
+  }
+}
+
+String _testCaseTitleArgs(MethodSpec spec, String label) {
+  switch (spec.kind) {
+    case MethodKind.getter:
+      return 'getter ${spec.name}';
+    case MethodKind.setter:
+      return label.isEmpty ? 'setter ${spec.name}' : 'setter ${spec.name}($label)';
+    case MethodKind.operator_:
+      return label.isEmpty ? 'operator ${spec.name}' : 'operator ${spec.name}($label)';
+    case MethodKind.method:
+      return label.isEmpty ? spec.name : '${spec.name}($label)';
+  }
+}
+
+/// Геттер `hashCode` у экземпляра: не сравниваем с литералом снимка (нестабилен между процессами),
+/// а проверяем согласованность для двух одинаково сконструированных объектов.
+bool _isInstanceHashCodeGetter(MethodSpec spec) =>
+    spec.kind == MethodKind.getter && spec.name == 'hashCode' && !spec.isStatic && !spec.isFactory;
+
+String _renderHashCodePairEqualityTest(String className, MethodSpec spec, String receiverExpr) {
+  final title = _escapeSingleQuoted(_testCaseTitleArgs(spec, ''));
+  if (spec.isAsync || spec.isStream) {
+    return '''
+    test('$title', () async {
+      final left = $receiverExpr;
+      final right = $receiverExpr;
+      expect(await left.hashCode, await right.hashCode);
+    });''';
+  }
+  return '''
+    test('$title', () {
+      final left = $receiverExpr;
+      final right = $receiverExpr;
+      expect(left.hashCode, right.hashCode);
+    });''';
+}
+
+String _renderSuccessTest(String className, MethodSpec spec, TestCaseRow row) {
   final label = _argLabel(spec.params, row.argLiterals);
   final inputs = _inputDeclarations(spec.params, row.argLiterals);
   final callArgs = _callArgs(spec.params, row.argLiterals);
-  
-  String syncCall;
-  if (spec.isFactory) {
-    if (spec.name.isEmpty) {
-      syncCall = '$className($callArgs)';
-    } else {
-      syncCall = '$className.${spec.name}($callArgs)';
-    }
-  } else if (spec.isStatic) {
-    syncCall = '$className.${spec.name}($callArgs)';
-  } else {
-    syncCall = '$instance.${spec.name}($callArgs)';
-  }
+  final syncCall = _syncInvokeExpression(className, spec, callArgs, row.argLiterals);
 
   final async = spec.isAsync || spec.isStream;
   final awaitedCall = spec.isStream ? 'await $syncCall.toList()' : 'await $syncCall';
 
-  final titleOk = _escapeSingleQuoted('${spec.name}($label)');
+  final titlePart = _testCaseTitleArgs(spec, label);
+  final titleOk = _escapeSingleQuoted(titlePart);
   if (spec.snapshotReturnType == 'void') {
-    final title = _escapeSingleQuoted('${spec.name}($label) runs without error');
+    final title = _escapeSingleQuoted('$titlePart runs without error');
     if (async) {
       return '''
     test('$title', () async {
@@ -223,10 +321,13 @@ $inputs
       $awaitedCall;
     });''';
     }
+    final voidBody = spec.kind == MethodKind.setter
+        ? 'expect(() { $syncCall; }, returnsNormally);'
+        : 'expect(() => $syncCall, returnsNormally);';
     return '''
     test('$title', () {
 $inputs
-      expect(() => $syncCall, returnsNormally);
+      $voidBody
     });''';
   }
 
@@ -255,26 +356,14 @@ $inputs
 }
 
 String _renderThrowsTest(String className, MethodSpec spec, TestCaseRow row) {
-  final instance = className.toLowerCase();
   final label = _argLabel(spec.params, row.argLiterals);
   final inputs = _inputDeclarations(spec.params, row.argLiterals);
   final callArgs = _callArgs(spec.params, row.argLiterals);
-  
-  String call;
-  if (spec.isFactory) {
-    if (spec.name.isEmpty) {
-      call = '$className($callArgs)';
-    } else {
-      call = '$className.${spec.name}($callArgs)';
-    }
-  } else if (spec.isStatic) {
-    call = '$className.${spec.name}($callArgs)';
-  } else {
-    call = '$instance.${spec.name}($callArgs)';
-  }
+  final call = _syncInvokeExpression(className, spec, callArgs, row.argLiterals);
 
   final ex = row.throwsType ?? 'Object';
-  final title = _escapeSingleQuoted('${spec.name}($label) throws $ex');
+  final titlePart = _testCaseTitleArgs(spec, label);
+  final title = _escapeSingleQuoted('$titlePart throws $ex');
   final async = spec.isAsync || spec.isStream;
   final thrown = spec.isStream ? '$call.toList()' : call;
 
@@ -286,10 +375,14 @@ $inputs
     });''';
   }
 
+  final throwsBody = spec.kind == MethodKind.setter
+      ? 'expect(() { $call; }, throwsA(isA<$ex>()));'
+      : 'expect(() => $call, throwsA(isA<$ex>()));';
+
   return '''
     test('$title', () {
 $inputs
-      expect(() => $call, throwsA(isA<$ex>()));
+      $throwsBody
     });''';
 }
 
@@ -313,21 +406,25 @@ String generateTestFile({
   buf.writeln('// Сгенерировано: ${DateTime.now().toIso8601String()}');
   buf.writeln();
   buf.writeln('void main() {');
+  final receiverExpr = receiverInstantiation ?? '$className()';
   bool needsInstance = methods.any((m) => !m.isStatic && !m.isFactory);
   if (needsInstance) {
-    final recv = receiverInstantiation ?? '$className()';
-    buf.writeln('  final ${className.toLowerCase()} = $recv;');
+    buf.writeln('  final ${className.toLowerCase()} = $receiverExpr;');
     buf.writeln();
   }
 
   for (final spec in methods) {
-    buf.writeln("  group('${spec.name}', () {");
+    buf.writeln("  group('${_escapeSingleQuoted(_testGroupName(spec))}', () {");
 
-    for (final row in spec.testCases) {
-      if (row.throwsType != null) {
-        buf.writeln(_renderThrowsTest(className, spec, row));
-      } else {
-        buf.writeln(_renderSuccessTest(className, spec, row));
+    if (_isInstanceHashCodeGetter(spec)) {
+      buf.writeln(_renderHashCodePairEqualityTest(className, spec, receiverExpr));
+    } else {
+      for (final row in spec.testCases) {
+        if (row.throwsType != null) {
+          buf.writeln(_renderThrowsTest(className, spec, row));
+        } else {
+          buf.writeln(_renderSuccessTest(className, spec, row));
+        }
       }
     }
 

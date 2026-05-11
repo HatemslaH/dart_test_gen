@@ -53,16 +53,60 @@ void _writeSnapshotRunnerImports(
 String formatArgsForSnapshot(List<Param> params, List<String> argLiterals) {
   final parts = <String>[];
   for (var i = 0; i < params.length; i++) {
-    final p = params[i];
+    final param = params[i];
     final val = argLiterals[i];
     if (val == '__OMITTED__') continue;
-    if (p.isNamed) {
-      parts.add('${p.name}: $val');
+    if (param.isNamed) {
+      parts.add('${param.name}: $val');
     } else {
       parts.add(val);
     }
   }
   return parts.join(', ');
+}
+
+String _snapshotReceiverPrefix(String className, ParsedMethod m) {
+  if (m.isStatic) return className;
+  return 'c';
+}
+
+String _snapshotOperatorExpression(String recv, String op, List<String> argLiterals) {
+  switch (op) {
+    case '[]':
+      return '$recv[${argLiterals[0]}]';
+    case '[]=':
+      return '$recv[${argLiterals[0]}] = ${argLiterals[1]}';
+    case '~':
+      return '~$recv';
+    case '-':
+      if (argLiterals.isEmpty) return '-$recv';
+      return '$recv - ${argLiterals[0]}';
+    default:
+      if (argLiterals.length != 1) {
+        throw StateError('operator $op: expected 1 arg, got ${argLiterals.length}');
+      }
+      return '$recv $op ${argLiterals[0]}';
+  }
+}
+
+/// Выражение вызова для раннера снимка (геттер / сеттер / оператор / метод).
+String snapshotInvokeExpression({
+  required String className,
+  required ParsedMethod m,
+  required String argList,
+  required List<String> args,
+}) {
+  final recv = _snapshotReceiverPrefix(className, m);
+  switch (m.kind) {
+    case MethodKind.getter:
+      return '$recv.${m.name}';
+    case MethodKind.setter:
+      return '$recv.${m.name} = $argList';
+    case MethodKind.operator_:
+      return _snapshotOperatorExpression(recv, m.name, args);
+    case MethodKind.method:
+      return '$recv.${m.name}($argList)';
+  }
 }
 
 /// Генерирует исходник раннера, выполняет его и возвращает снимки по методам.
@@ -172,7 +216,7 @@ List<MethodSnapshot> runSnapshots({
     for (final args in cases) {
       final argList = formatArgsForSnapshot(m.params, args);
       final argJson = jsonEncode(args);
-      
+
       String invokeExpr;
       if (m.isFactory) {
         if (m.name.isEmpty) {
@@ -180,10 +224,13 @@ List<MethodSnapshot> runSnapshots({
         } else {
           invokeExpr = '${parsed.className}.${m.name}($argList)';
         }
-      } else if (m.isStatic) {
-        invokeExpr = '${parsed.className}.${m.name}($argList)';
       } else {
-        invokeExpr = 'c.${m.name}($argList)';
+        invokeExpr = snapshotInvokeExpression(
+          className: parsed.className,
+          m: m,
+          argList: argList,
+          args: args,
+        );
       }
 
       if (m.snapshotReturnType == 'void') {

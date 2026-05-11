@@ -4,7 +4,7 @@ import 'package:dart_test_gen/usecases/type_extensions_showcase/counter_label.da
 import 'package:dart_test_gen/usecases/type_extensions_showcase/name_tag.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T15:03:45.004285
+// Сгенерировано: 2026-05-11T16:52:44.699302
 
 void main() {
   final typeextensionsshowcase = TypeExtensionsShowcase();

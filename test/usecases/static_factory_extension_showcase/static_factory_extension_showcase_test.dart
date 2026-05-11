@@ -2,11 +2,13 @@ import 'package:test/test.dart';
 import 'package:dart_test_gen/usecases/static_factory_extension_showcase/static_factory_extension_showcase.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T15:46:24.540329
+// Сгенерировано: 2026-05-11T16:52:44.687873
 
 void main() {
+  final user = User('', 0);
+
   group('getDefaultName', () {
-    test('getDefaultName()', () {
+    test('getDefaultName', () {
 
       final expected = 'Guest';
       final actual = User.getDefaultName();
@@ -263,7 +265,7 @@ void main() {
   });
 
   group('guest', () {
-    test('guest()', () {
+    test('guest', () {
 
       final expected = User('Guest', 0);
       final actual = User.guest();
@@ -289,6 +291,29 @@ void main() {
       final expected = User('  ', 99);
       final actual = User.admin(name);
       expect(actual, expected);
+    });
+  });
+
+  group('operator ==', () {
+    test('operator ==(0)', () {
+      final other = 0;
+      final expected = false;
+      final actual = user == other;
+      expect(actual, expected);
+    });
+    test('operator ==(\'str\')', () {
+      final other = 'str';
+      final expected = false;
+      final actual = user == other;
+      expect(actual, expected);
+    });
+  });
+
+  group('getter hashCode', () {
+    test('getter hashCode', () {
+      final left = User('', 0);
+      final right = User('', 0);
+      expect(left.hashCode, right.hashCode);
     });
   });
 

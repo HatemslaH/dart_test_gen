@@ -358,6 +358,7 @@ Future<void> generateSingleLibraryFile({
         isStream: m.isStream,
         isStatic: m.isStatic,
         isFactory: m.isFactory,
+        kind: m.kind,
         testCases: sampledRows,
       ),
     );

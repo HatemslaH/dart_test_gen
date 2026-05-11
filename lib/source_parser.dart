@@ -25,6 +25,7 @@ class ParsedMethod {
 
   final bool isStatic;
   final bool isFactory;
+  final MethodKind kind;
 
   const ParsedMethod({
     required this.name,
@@ -35,6 +36,7 @@ class ParsedMethod {
     required this.snapshotReturnType,
     this.isStatic = false,
     this.isFactory = false,
+    this.kind = MethodKind.method,
   });
 }
 
@@ -170,17 +172,65 @@ List<String> _extractLiteralsFromNode(AstNode? node, String paramName) {
   return literals.toList();
 }
 
+Expression _unwrapParens(Expression e) {
+  var x = e;
+  while (x is ParenthesizedExpression) {
+    x = x.expression;
+  }
+  return x;
+}
+
+/// Целое из литерала `42` или унарного `-42`.
+int? _intFromLiteralExpression(Expression e) {
+  final u = _unwrapParens(e);
+  if (u is IntegerLiteral) return u.value;
+  if (u is PrefixExpression && u.operator.lexeme == '-') {
+    final inner = _unwrapParens(u.operand);
+    if (inner is IntegerLiteral) {
+      final v = inner.value;
+      if (v != null) return -v;
+    }
+  }
+  return null;
+}
+
 class _LiteralVisitor extends RecursiveAstVisitor<void> {
   final String paramName;
   final Set<String> literals;
 
   _LiteralVisitor(this.paramName, this.literals);
 
+  void _addIntBoundaryTriplet(int pivot) {
+    literals.add('$pivot');
+    literals.add('${pivot - 1}');
+    literals.add('${pivot + 1}');
+  }
+
+  void _visitComparison(BinaryExpression node) {
+    final op = node.operator.lexeme;
+    if (op != '<' && op != '<=' && op != '>' && op != '>=') return;
+
+    final left = _unwrapParens(node.leftOperand);
+    final right = _unwrapParens(node.rightOperand);
+
+    if (left is SimpleIdentifier && left.name == paramName) {
+      final v = _intFromLiteralExpression(right);
+      if (v != null) _addIntBoundaryTriplet(v);
+      return;
+    }
+    if (right is SimpleIdentifier && right.name == paramName) {
+      final v = _intFromLiteralExpression(left);
+      if (v != null) _addIntBoundaryTriplet(v);
+    }
+  }
+
   @override
   void visitBinaryExpression(BinaryExpression node) {
     if (node.operator.lexeme == '==' || node.operator.lexeme == '!=') {
       _check(node.leftOperand, node.rightOperand);
       _check(node.rightOperand, node.leftOperand);
+    } else {
+      _visitComparison(node);
     }
     super.visitBinaryExpression(node);
   }
@@ -315,6 +365,9 @@ Param _paramFor(
         return create(ParamType.bool_);
       case 'String':
         return create(ParamType.string_);
+      // `operator ==(Object other)` и любые `Object`/`Object?` — допустимые литералы как у dynamic.
+      case 'Object':
+        return create(ParamType.dynamic_);
       default:
         final cls = allFileClasses.where((c) => c.name == base).firstOrNull;
         final customLiterals = cls != null ? _sampleLiteralsForCustomClass(cls) : null;
@@ -362,6 +415,16 @@ String _returnTypeString(MethodDeclaration m) {
   return rt.toSource();
 }
 
+/// Для сеттера в AST тип возврата часто отсутствует — по смыслу это `void`.
+String _returnTypeStringForMember(MethodDeclaration m, MethodKind kind) {
+  if (kind == MethodKind.setter) {
+    final rt = m.returnType;
+    if (rt == null) return 'void';
+    return rt.toSource();
+  }
+  return _returnTypeString(m);
+}
+
 String? _futureStreamInner(NamedType rt) {
   final base = rt.name.lexeme;
   if (base != 'Future' && base != 'Stream') return null;
@@ -397,13 +460,64 @@ bool _methodIsAsync(MethodDeclaration m) {
   return rt is NamedType && rt.name.lexeme == 'Future';
 }
 
-bool _isSupportedMethod(MethodDeclaration m) {
-  if (m.parent is! ClassDeclaration && m.parent is! ExtensionTypeDeclaration) return false;
-  if (m.operatorKeyword != null) return false;
-  if (m.isGetter || m.isSetter) return false;
-  if (m.name.lexeme.startsWith('_')) return false;
-  if (m.body is EmptyFunctionBody) return false;
-  return true;
+bool _isSupportedOperator(String op, FormalParameterList? parameters) {
+  final n = parameters?.parameters.length ?? 0;
+  switch (op) {
+    case '-':
+      return n == 0 || n == 1;
+    case '~':
+      return n == 0;
+    case '[]':
+      return n == 1;
+    case '[]=':
+      return n == 2;
+    case '+':
+    case '*':
+    case '/':
+    case '%':
+    case '~/':
+    case '&':
+    case '|':
+    case '^':
+    case '<<':
+    case '>>':
+    case '>>>':
+    case '<':
+    case '>':
+    case '<=':
+    case '>=':
+    case '==':
+      return n == 1;
+    default:
+      return false;
+  }
+}
+
+/// Возвращает вид члена, если он поддерживается генератором, иначе `null`.
+MethodKind? _supportedMemberKind(MethodDeclaration m) {
+  if (m.parent is! ClassDeclaration && m.parent is! ExtensionTypeDeclaration) return null;
+  if (m.name.lexeme.startsWith('_')) return null;
+  if (m.body is EmptyFunctionBody) return null;
+
+  if (m.isGetter) {
+    if (m.parameters != null && m.parameters!.parameters.isNotEmpty) return null;
+    if (_hasUnsupportedParameters(m.parameters)) return null;
+    return MethodKind.getter;
+  }
+  if (m.isSetter) {
+    if (m.parameters == null || m.parameters!.parameters.length != 1) return null;
+    if (_hasUnsupportedParameters(m.parameters)) return null;
+    return MethodKind.setter;
+  }
+  if (m.isOperator) {
+    final op = m.name.lexeme;
+    if (!_isSupportedOperator(op, m.parameters)) return null;
+    if (_hasUnsupportedParameters(m.parameters)) return null;
+    return MethodKind.operator_;
+  }
+
+  if (m.operatorKeyword != null) return null;
+  return MethodKind.method;
 }
 
 List<Param> _paramsFromFormalList(
@@ -501,8 +615,7 @@ NamedCompilationUnitMember? _findTargetClassOrExtensionType(CompilationUnit unit
       if (member is ConstructorDeclaration) {
         if (member.factoryKeyword != null && (member.name == null || !member.name!.lexeme.startsWith('_'))) score++;
       } else if (member is MethodDeclaration) {
-        if (!_isSupportedMethod(member)) continue;
-        if (_hasUnsupportedParameters(member.parameters)) continue;
+        if (_supportedMemberKind(member) == null) continue;
         score++;
       }
     }
@@ -573,19 +686,22 @@ ParsedClass? parseLibraryClassOptional(
   for (final member in members) {
     if (member is MethodDeclaration) {
       final m = member;
-      if (!_isSupportedMethod(m)) continue;
-      if (_hasUnsupportedParameters(m.parameters)) continue;
+      final kind = _supportedMemberKind(m);
+      if (kind == null) continue;
 
       final params = _paramsFromFormalList(m.parameters, enumLiterals, allClasses, m);
+      final returnType = _returnTypeStringForMember(m, kind);
+      final snapshotRt = kind == MethodKind.setter ? 'void' : _snapshotReturnTypeForMethod(m);
       methods.add(
         ParsedMethod(
           name: m.name.lexeme,
           params: params,
-          returnType: _returnTypeString(m),
+          returnType: returnType,
           isAsync: _methodIsAsync(m),
           isStream: _methodIsStream(m),
-          snapshotReturnType: _snapshotReturnTypeForMethod(m),
+          snapshotReturnType: snapshotRt,
           isStatic: m.isStatic,
+          kind: kind,
         ),
       );
     } else if (member is ConstructorDeclaration) {
@@ -603,6 +719,7 @@ ParsedClass? parseLibraryClassOptional(
             isStream: false,
             snapshotReturnType: cls.name.lexeme,
             isFactory: true,
+            kind: MethodKind.method,
           ),
         );
       }

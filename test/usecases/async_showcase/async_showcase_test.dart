@@ -4,7 +4,7 @@ import 'package:dart_test_gen/usecases/async_showcase/priority.dart';
 import 'package:dart_test_gen/usecases/async_showcase/task_result.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T15:03:44.885226
+// Сгенерировано: 2026-05-11T16:52:44.738408
 
 void main() {
   final asyncshowcase = AsyncShowcase();
@@ -350,6 +350,10 @@ void main() {
       final score = -10;
       await expectLater(asyncshowcase.validateScore(score), throwsA(isA<RangeError>()));
     });
+    test('validateScore(101) throws RangeError', () async {
+      final score = 101;
+      await expectLater(asyncshowcase.validateScore(score), throwsA(isA<RangeError>()));
+    });
     test('validateScore(0) runs without error', () async {
       final score = 0;
       await asyncshowcase.validateScore(score);
@@ -364,6 +368,14 @@ void main() {
     });
     test('validateScore(10) runs without error', () async {
       final score = 10;
+      await asyncshowcase.validateScore(score);
+    });
+    test('validateScore(100) runs without error', () async {
+      final score = 100;
+      await asyncshowcase.validateScore(score);
+    });
+    test('validateScore(99) runs without error', () async {
+      final score = 99;
       await asyncshowcase.validateScore(score);
     });
   });
