@@ -72,6 +72,13 @@ class MethodSpec {
   final bool isStatic;
   final bool isFactory;
   final MethodKind kind;
+
+  /// From config: when true and [snapshotReturnType] is `double`, emit `closeTo`.
+  final bool useCloseForDouble;
+
+  /// Absolute epsilon for generated `closeTo` when [useCloseForDouble] is true.
+  final double doubleEpsilon;
+
   final List<TestCaseRow> testCases;
 
   const MethodSpec({
@@ -84,6 +91,8 @@ class MethodSpec {
     this.isStatic = false,
     this.isFactory = false,
     this.kind = MethodKind.method,
+    this.useCloseForDouble = false,
+    this.doubleEpsilon = 1e-9,
     required this.testCases,
   });
 }
@@ -336,13 +345,18 @@ $inputs
     throw StateError('expectedLiteral is null for ${spec.name}');
   }
 
+  final useClose = spec.useCloseForDouble && spec.snapshotReturnType == 'double';
+  final expectLine =
+      useClose ? 'expect(actual, closeTo(expected, ${_doubleLiteralForGenerated(spec.doubleEpsilon)}));'
+      : 'expect(actual, expected);';
+
   if (async) {
     return '''
     test('$titleOk', () async {
 $inputs
       final expected = $expected;
       final actual = $awaitedCall;
-      expect(actual, expected);
+      $expectLine
     });''';
   }
 
@@ -351,8 +365,13 @@ $inputs
 $inputs
       final expected = $expected;
       final actual = $syncCall;
-      expect(actual, expected);
+      $expectLine
     });''';
+}
+
+String _doubleLiteralForGenerated(double d) {
+  if (d.isNaN || d.isInfinite) return d.toString();
+  return d.toString();
 }
 
 String _renderThrowsTest(String className, MethodSpec spec, TestCaseRow row) {

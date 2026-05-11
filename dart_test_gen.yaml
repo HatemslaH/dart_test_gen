@@ -1,3 +1,5 @@
 strategy: full
+use_close_for_double: true
+double_epsilon: 1e-7
 max_cases: 20
 seed: 42

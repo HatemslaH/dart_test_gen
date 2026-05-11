@@ -4,7 +4,7 @@ import 'package:dart_test_gen/usecases/data_toolbox/log_level.dart';
 import 'package:dart_test_gen/usecases/data_toolbox/rgb_color.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T16:52:44.699302
+// Сгенерировано: 2026-05-11T17:24:41.651643
 
 void main() {
   final datatoolbox = DataToolbox();
@@ -158,105 +158,105 @@ void main() {
       final weight = 0.0;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean(<int>[], 1.0)', () {
       final samples = <int>[];
       final weight = 1.0;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean(<int>[], -1.0)', () {
       final samples = <int>[];
       final weight = -1.0;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean(<int>[], 0.5)', () {
       final samples = <int>[];
       final weight = 0.5;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean(<int>[], -0.5)', () {
       final samples = <int>[];
       final weight = -0.5;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([0], 0.0)', () {
       final samples = [0];
       final weight = 0.0;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([0], 1.0)', () {
       final samples = [0];
       final weight = 1.0;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([0], -1.0)', () {
       final samples = [0];
       final weight = -1.0;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([0], 0.5)', () {
       final samples = [0];
       final weight = 0.5;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([0], -0.5)', () {
       final samples = [0];
       final weight = -0.5;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([1, -1, 2], 0.0)', () {
       final samples = [1, -1, 2];
       final weight = 0.0;
       final expected = 0.0;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([1, -1, 2], 1.0)', () {
       final samples = [1, -1, 2];
       final weight = 1.0;
       final expected = 0.6666666666666666;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([1, -1, 2], -1.0)', () {
       final samples = [1, -1, 2];
       final weight = -1.0;
       final expected = -0.6666666666666666;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([1, -1, 2], 0.5)', () {
       final samples = [1, -1, 2];
       final weight = 0.5;
       final expected = 0.3333333333333333;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('weightedMean([1, -1, 2], -0.5)', () {
       final samples = [1, -1, 2];
       final weight = -0.5;
       final expected = -0.3333333333333333;
       final actual = datatoolbox.weightedMean(samples, weight);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
   });
 

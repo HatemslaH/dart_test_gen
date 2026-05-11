@@ -5,7 +5,7 @@ import 'package:dart_test_gen/usecases/optional_types/custom_item.dart';
 import 'package:dart_test_gen/usecases/optional_types/item_status.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T16:52:44.841669
+// Сгенерировано: 2026-05-11T17:24:41.736239
 
 void main() {
   final optionaltypes = OptionalTypes();

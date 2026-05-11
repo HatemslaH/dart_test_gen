@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:dart_test_gen/usecases/getters_setters_operators_showcase/getters_setters_operators_showcase.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T16:52:44.724640
+// Сгенерировано: 2026-05-11T17:24:41.648629
 
 void main() {
   final getterssettersoperatorsshowcase = GettersSettersOperatorsShowcase(a: 0);

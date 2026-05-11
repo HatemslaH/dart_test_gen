@@ -4,7 +4,7 @@ import 'package:dart_test_gen/usecases/async_showcase/priority.dart';
 import 'package:dart_test_gen/usecases/async_showcase/task_result.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T16:52:44.738408
+// Сгенерировано: 2026-05-11T17:24:41.675569
 
 void main() {
   final asyncshowcase = AsyncShowcase();

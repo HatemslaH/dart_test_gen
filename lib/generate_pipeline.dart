@@ -102,6 +102,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   int? maxCases,
   int? seed,
   String? configPath,
+  bool? useCloseForDouble,
+  double? doubleEpsilon,
 }) parseCliArgs(List<String> args) {
   String? className;
   var verbose = false;
@@ -109,6 +111,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   int? maxCases;
   int? seed;
   String? configPath;
+  bool? useCloseForDouble;
+  double? doubleEpsilon;
 
   final rest = <String>[];
   for (var i = 0; i < args.length; i++) {
@@ -125,6 +129,16 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       seed = int.tryParse(args[++i]);
     } else if (a == '--config' && i + 1 < args.length) {
       configPath = args[++i];
+    } else if (a == '--use-close-for-double') {
+      useCloseForDouble = true;
+    } else if (a == '--double-epsilon' && i + 1 < args.length) {
+      final raw = args[++i];
+      final parsed = double.tryParse(raw);
+      if (parsed == null || !parsed.isFinite || parsed <= 0) {
+        CliLog.err('--double-epsilon: ожидается конечное число > 0, получено: $raw');
+        exit(64);
+      }
+      doubleEpsilon = parsed;
     } else {
       rest.add(a);
     }
@@ -138,6 +152,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       '  --strategy <type>   стратегия сэмплирования: full, random, happy_path.\n'
       '  --max-cases <N>     макс. кол-во успешных кейсов на метод (по умолчанию 200).\n'
       '  --seed <N>          зерно для random стратегии.\n'
+      '  --use-close-for-double  для `double`: генерировать expect(..., closeTo(...)).\n'
+      '  --double-epsilon <x>    абсолютный epsilon для closeTo (перекрывает YAML).\n'
       '  --config <path>     путь к файлу конфигурации (по умолчанию dart_test_gen.yaml).',
     );
     exit(64);
@@ -150,6 +166,8 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
     maxCases: maxCases,
     seed: seed,
     configPath: configPath,
+    useCloseForDouble: useCloseForDouble,
+    doubleEpsilon: doubleEpsilon,
   );
 }
 
@@ -348,6 +366,7 @@ Future<void> generateSingleLibraryFile({
 
     final sampledRows = sampleTestCases(rows, config.forMethod(m.name));
 
+    final methodConfig = config.forMethod(m.name);
     methods.add(
       MethodSpec(
         name: m.name,
@@ -359,6 +378,8 @@ Future<void> generateSingleLibraryFile({
         isStatic: m.isStatic,
         isFactory: m.isFactory,
         kind: m.kind,
+        useCloseForDouble: methodConfig.useCloseForDouble,
+        doubleEpsilon: methodConfig.doubleEpsilon,
         testCases: sampledRows,
       ),
     );
@@ -436,12 +457,18 @@ Future<void> generateFromCli(List<String> args) async {
 
   // Load config and apply CLI overrides
   var config = GeneratorConfig.load(packageRoot, configPath: parsedArgs.configPath);
-  if (parsedArgs.strategy != null || parsedArgs.maxCases != null || parsedArgs.seed != null) {
+  if (parsedArgs.strategy != null ||
+      parsedArgs.maxCases != null ||
+      parsedArgs.seed != null ||
+      parsedArgs.useCloseForDouble != null ||
+      parsedArgs.doubleEpsilon != null) {
     config = GeneratorConfig(
       defaults: config.defaults.copyWith(
         strategy: parsedArgs.strategy != null ? SamplingStrategy.fromString(parsedArgs.strategy) : null,
         maxCases: parsedArgs.maxCases,
         seed: parsedArgs.seed,
+        useCloseForDouble: parsedArgs.useCloseForDouble,
+        doubleEpsilon: parsedArgs.doubleEpsilon,
       ),
       methods: config.methods,
     );

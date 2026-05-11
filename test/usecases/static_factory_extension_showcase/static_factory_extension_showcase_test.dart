@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:dart_test_gen/usecases/static_factory_extension_showcase/static_factory_extension_showcase.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T16:52:44.687873
+// Сгенерировано: 2026-05-11T17:24:41.603370
 
 void main() {
   final user = User('', 0);

@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:dart_test_gen/usecases/calculator.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T16:52:44.926210
+// Сгенерировано: 2026-05-11T17:24:41.779435
 
 void main() {
   final calculator = Calculator();
@@ -477,140 +477,140 @@ void main() {
       final b = 1;
       final expected = 0.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(0, -1)', () {
       final a = 0;
       final b = -1;
       final expected = 0.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(0, 2)', () {
       final a = 0;
       final b = 2;
       final expected = 0.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(0, -2)', () {
       final a = 0;
       final b = -2;
       final expected = 0.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(0, 10)', () {
       final a = 0;
       final b = 10;
       final expected = 0.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(0, -10)', () {
       final a = 0;
       final b = -10;
       final expected = 0.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(1, 1)', () {
       final a = 1;
       final b = 1;
       final expected = 1.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(1, -1)', () {
       final a = 1;
       final b = -1;
       final expected = -1.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(1, 2)', () {
       final a = 1;
       final b = 2;
       final expected = 0.5;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(1, -2)', () {
       final a = 1;
       final b = -2;
       final expected = -0.5;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(1, 10)', () {
       final a = 1;
       final b = 10;
       final expected = 0.1;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(1, -10)', () {
       final a = 1;
       final b = -10;
       final expected = -0.1;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(-1, 1)', () {
       final a = -1;
       final b = 1;
       final expected = -1.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(-1, -1)', () {
       final a = -1;
       final b = -1;
       final expected = 1.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(-1, 2)', () {
       final a = -1;
       final b = 2;
       final expected = -0.5;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(-1, -2)', () {
       final a = -1;
       final b = -2;
       final expected = 0.5;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(-1, 10)', () {
       final a = -1;
       final b = 10;
       final expected = -0.1;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(-1, -10)', () {
       final a = -1;
       final b = -10;
       final expected = 0.1;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(2, 1)', () {
       final a = 2;
       final b = 1;
       final expected = 2.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
     test('divide(2, -1)', () {
       final a = 2;
       final b = -1;
       final expected = -2.0;
       final actual = calculator.divide(a, b);
-      expect(actual, expected);
+      expect(actual, closeTo(expected, 1e-7));
     });
   });
 
