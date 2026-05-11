@@ -64,6 +64,34 @@ String _escapeDartString(String s) {
   return s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
 }
 
+/// Normalizes a runtime exception type name to a public Dart identifier.
+///
+/// Maps known private dart:core names (`_Exception`, `_AssertionError`, etc.)
+/// to their public counterparts. For other `_`-prefixed names, falls back to
+/// `Error`, `Exception`, or `Object` based on the runtime flags.
+String publicExceptionName(
+  String runtimeTypeName, {
+  bool isError = false,
+  bool isException = false,
+}) {
+  switch (runtimeTypeName) {
+    case '_Exception':
+      return 'Exception';
+    case '_AssertionError':
+      return 'AssertionError';
+    case '_TypeError':
+      return 'TypeError';
+    case '_CastError':
+      return 'TypeError';
+  }
+  if (runtimeTypeName.startsWith('_')) {
+    if (isError) return 'Error';
+    if (isException) return 'Exception';
+    return 'Object';
+  }
+  return runtimeTypeName;
+}
+
 void _snapshotVerbose(void Function(String line)? sink, String label, String step, String detail) {
   sink?.call('[$label]\tsnapshot/$step\t$detail\n');
 }
@@ -180,6 +208,22 @@ List<MethodSnapshot> runSnapshots({
   buf.writeln("import 'dart:io';");
   _writeSnapshotRunnerImports(buf, packageRoot, packageName, absoluteLibPath, extraPackageImports);
   buf.writeln();
+  buf.writeln('String _publicExceptionName(Object e) {');
+  buf.writeln('  final n = e.runtimeType.toString();');
+  buf.writeln('  switch (n) {');
+  buf.writeln("    case '_Exception': return 'Exception';");
+  buf.writeln("    case '_AssertionError': return 'AssertionError';");
+  buf.writeln("    case '_TypeError': return 'TypeError';");
+  buf.writeln("    case '_CastError': return 'TypeError';");
+  buf.writeln('  }');
+  buf.writeln("  if (n.startsWith('_')) {");
+  buf.writeln("    if (e is Error) return 'Error';");
+  buf.writeln("    if (e is Exception) return 'Exception';");
+  buf.writeln("    return 'Object';");
+  buf.writeln('  }');
+  buf.writeln('  return n;');
+  buf.writeln('}');
+  buf.writeln();
   buf.writeln('Object? snapshotValue(Object? v) {');
   buf.writeln('  if (v == null || v is num || v is bool || v is String) {');
   buf.writeln('    return v;');
@@ -281,7 +325,7 @@ List<MethodSnapshot> runSnapshots({
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': true});");
         buf.writeln('    } catch (e) {');
         buf.writeln(
-            "      out.add({'method': method, 'args': args, 'ok': false, 'exception': e.runtimeType.toString()});");
+            "      out.add({'method': method, 'args': args, 'ok': false, 'exception': _publicExceptionName(e)});");
         buf.writeln('    }');
         buf.writeln('  }');
       } else {
@@ -299,7 +343,7 @@ List<MethodSnapshot> runSnapshots({
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': true, 'value': snapshotValue(v)});");
         buf.writeln('    } catch (e) {');
         buf.writeln(
-            "      out.add({'method': method, 'args': args, 'ok': false, 'exception': e.runtimeType.toString()});");
+            "      out.add({'method': method, 'args': args, 'ok': false, 'exception': _publicExceptionName(e)});");
         buf.writeln('    }');
         buf.writeln('  }');
       }
@@ -406,7 +450,7 @@ List<MethodSnapshot> _mergeDecoded(ParsedClass parsed, List<dynamic> decoded) {
           rows.add(SnapshotRow(argLiterals: argLiterals, expectedDartLiteral: lit));
         }
       } else {
-        final ex = row['exception'] as String;
+        final ex = publicExceptionName(row['exception'] as String);
         rows.add(SnapshotRow(argLiterals: argLiterals, throwsExceptionType: ex));
       }
     }

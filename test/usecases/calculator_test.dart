@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:dart_test_gen/usecases/calculator.dart';
 
 // AUTO-GENERATED — не редактировать вручную
-// Сгенерировано: 2026-05-11T19:15:33.019460
+// Сгенерировано: 2026-05-11T20:22:32.816797
 
 void main() {
   final calculator = Calculator();
