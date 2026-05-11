@@ -356,6 +356,8 @@ Future<void> generateSingleLibraryFile({
         snapshotReturnType: m.snapshotReturnType,
         isAsync: m.isAsync,
         isStream: m.isStream,
+        isStatic: m.isStatic,
+        isFactory: m.isFactory,
         testCases: sampledRows,
       ),
     );

@@ -172,17 +172,31 @@ List<MethodSnapshot> runSnapshots({
     for (final args in cases) {
       final argList = formatArgsForSnapshot(m.params, args);
       final argJson = jsonEncode(args);
+      
+      String invokeExpr;
+      if (m.isFactory) {
+        if (m.name.isEmpty) {
+          invokeExpr = '${parsed.className}($argList)';
+        } else {
+          invokeExpr = '${parsed.className}.${m.name}($argList)';
+        }
+      } else if (m.isStatic) {
+        invokeExpr = '${parsed.className}.${m.name}($argList)';
+      } else {
+        invokeExpr = 'c.${m.name}($argList)';
+      }
+
       if (m.snapshotReturnType == 'void') {
         buf.writeln('  {');
         buf.writeln("    const method = '${_escapeDartString(m.name)}';");
         buf.writeln('    final args = $argJson as List<dynamic>;');
         buf.writeln('    try {');
         if (m.isStream) {
-          buf.writeln('      await c.${m.name}($argList).toList();');
+          buf.writeln('      await $invokeExpr.toList();');
         } else if (m.isAsync) {
-          buf.writeln('      await c.${m.name}($argList);');
+          buf.writeln('      await $invokeExpr;');
         } else {
-          buf.writeln('      c.${m.name}($argList);');
+          buf.writeln('      $invokeExpr;');
         }
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': true});");
         buf.writeln('    } catch (e) {');
@@ -196,11 +210,11 @@ List<MethodSnapshot> runSnapshots({
         buf.writeln('    final args = $argJson as List<dynamic>;');
         buf.writeln('    try {');
         if (m.isStream) {
-          buf.writeln('      final v = await c.${m.name}($argList).toList();');
+          buf.writeln('      final v = await $invokeExpr.toList();');
         } else if (m.isAsync) {
-          buf.writeln('      final v = await c.${m.name}($argList);');
+          buf.writeln('      final v = await $invokeExpr;');
         } else {
-          buf.writeln('      final v = c.${m.name}($argList);');
+          buf.writeln('      final v = $invokeExpr;');
         }
         buf.writeln("      out.add({'method': method, 'args': args, 'ok': true, 'value': snapshotValue(v)});");
         buf.writeln('    } catch (e) {');

@@ -23,6 +23,9 @@ class ParsedMethod {
   /// Развёрнутый тип для снимка и генерации: `Future<T>` → `T`, `Stream<T>` → `List<T>`.
   final String snapshotReturnType;
 
+  final bool isStatic;
+  final bool isFactory;
+
   const ParsedMethod({
     required this.name,
     required this.params,
@@ -30,6 +33,8 @@ class ParsedMethod {
     required this.isAsync,
     required this.isStream,
     required this.snapshotReturnType,
+    this.isStatic = false,
+    this.isFactory = false,
   });
 }
 
@@ -41,6 +46,7 @@ class ClassInfo {
   final Map<String, String> fieldTypes;
   final List<String> constructorPositionalParams;
   final List<String> constructorNamedParams;
+  final bool isExtensionType;
 
   const ClassInfo(
     this.name,
@@ -48,6 +54,7 @@ class ClassInfo {
     this.fieldTypes = const {},
     this.constructorPositionalParams = const [],
     this.constructorNamedParams = const [],
+    this.isExtensionType = false,
   });
 }
 
@@ -105,7 +112,7 @@ List<ClassInfo> _collectAllClasses(CompilationUnit unit) {
       final named = <String>[];
       ConstructorDeclaration? primary;
       for (final member in d.members) {
-        if (member is ConstructorDeclaration) {
+        if (member is ConstructorDeclaration && member.factoryKeyword == null) {
           if (member.name == null) {
             primary = member;
             break;
@@ -131,14 +138,35 @@ List<ClassInfo> _collectAllClasses(CompilationUnit unit) {
         constructorPositionalParams: positional,
         constructorNamedParams: named,
       ));
+    } else if (d is ExtensionTypeDeclaration) {
+      final fields = <String>[];
+      final fieldTypes = <String, String>{};
+      
+      final rep = d.representation;
+      final repName = rep.fieldName.lexeme;
+      fields.add(repName);
+      fieldTypes[repName] = rep.fieldType.toSource();
+      
+      final positional = <String>[repName];
+      final named = <String>[];
+      
+      out.add(ClassInfo(
+        d.name.lexeme,
+        fields,
+        fieldTypes: fieldTypes,
+        constructorPositionalParams: positional,
+        constructorNamedParams: named,
+        isExtensionType: true,
+      ));
     }
   }
   return out;
 }
 
-List<String> _extractLiteralsFromMethod(MethodDeclaration m, String paramName) {
+List<String> _extractLiteralsFromNode(AstNode? node, String paramName) {
+  if (node == null) return const [];
   final literals = <String>{};
-  m.body.visitChildren(_LiteralVisitor(paramName, literals));
+  node.visitChildren(_LiteralVisitor(paramName, literals));
   return literals.toList();
 }
 
@@ -369,9 +397,8 @@ bool _methodIsAsync(MethodDeclaration m) {
   return rt is NamedType && rt.name.lexeme == 'Future';
 }
 
-bool _isSupportedInstanceMethod(MethodDeclaration m) {
-  if (m.parent is! ClassDeclaration) return false;
-  if (m.isStatic) return false;
+bool _isSupportedMethod(MethodDeclaration m) {
+  if (m.parent is! ClassDeclaration && m.parent is! ExtensionTypeDeclaration) return false;
   if (m.operatorKeyword != null) return false;
   if (m.isGetter || m.isSetter) return false;
   if (m.name.lexeme.startsWith('_')) return false;
@@ -383,7 +410,7 @@ List<Param> _paramsFromFormalList(
   FormalParameterList? list,
   Map<String, List<String>> enumLiterals,
   List<ClassInfo> allFileClasses,
-  MethodDeclaration m,
+  AstNode? node,
 ) {
   if (list == null) return const [];
   final out = <Param>[];
@@ -413,7 +440,7 @@ List<Param> _paramsFromFormalList(
         isNullable = type.question != null;
       }
 
-      final extraLiterals = _extractLiteralsFromMethod(m, paramName.lexeme);
+      final extraLiterals = _extractLiteralsFromNode(node, paramName.lexeme);
 
       out.add(_paramFor(
         paramName.lexeme,
@@ -445,31 +472,39 @@ bool _hasUnsupportedParameters(FormalParameterList? list) {
 /// Имя класса, для которого выполняется генерация (как при разборе без `--class`).
 String? targetClassNameForGeneration(String absoluteLibPath, {String? className}) {
   final parsed = parseFile(path: absoluteLibPath, featureSet: FeatureSet.latestLanguageVersion()).unit;
-  final cls = _findTargetClass(parsed, className: className);
+  final cls = _findTargetClassOrExtensionType(parsed, className: className);
   return cls?.name.lexeme;
 }
 
-ClassDeclaration? _findTargetClass(CompilationUnit unit, {String? className}) {
-  final classes = unit.declarations.whereType<ClassDeclaration>().toList();
-  if (classes.isEmpty) return null;
+NamedCompilationUnitMember? _findTargetClassOrExtensionType(CompilationUnit unit, {String? className}) {
+  final classesAndExtensions = unit.declarations
+      .where((d) => d is ClassDeclaration || d is ExtensionTypeDeclaration)
+      .cast<NamedCompilationUnitMember>()
+      .toList();
+  if (classesAndExtensions.isEmpty) return null;
 
   if (className != null) {
-    for (final c in classes) {
+    for (final c in classesAndExtensions) {
       if (c.name.lexeme == className) return c;
     }
     return null;
   }
 
-  ClassDeclaration? best;
+  NamedCompilationUnitMember? best;
   var bestScore = -1;
-  for (final c in classes) {
+  for (final c in classesAndExtensions) {
     if (c.name.lexeme.startsWith('_')) continue;
     var score = 0;
-    for (final member in c.members) {
-      if (member is! MethodDeclaration) continue;
-      if (!_isSupportedInstanceMethod(member)) continue;
-      if (_hasUnsupportedParameters(member.parameters)) continue;
-      score++;
+    
+    final members = c is ClassDeclaration ? c.members : (c as ExtensionTypeDeclaration).members;
+    for (final member in members) {
+      if (member is ConstructorDeclaration) {
+        if (member.factoryKeyword != null && (member.name == null || !member.name!.lexeme.startsWith('_'))) score++;
+      } else if (member is MethodDeclaration) {
+        if (!_isSupportedMethod(member)) continue;
+        if (_hasUnsupportedParameters(member.parameters)) continue;
+        score++;
+      }
     }
     if (score > bestScore) {
       bestScore = score;
@@ -478,10 +513,10 @@ ClassDeclaration? _findTargetClass(CompilationUnit unit, {String? className}) {
   }
   if (best != null) return best;
 
-  for (final c in classes) {
+  for (final c in classesAndExtensions) {
     if (!c.name.lexeme.startsWith('_')) return c;
   }
-  return classes.first;
+  return classesAndExtensions.first;
 }
 
 /// Дополняет [enumLiterals] и [allClasses] объявлениями из указанных файлов [mergeLibAbsolutePaths].
@@ -521,7 +556,7 @@ ParsedClass? parseLibraryClassOptional(
   List<String> mergeLibAbsolutePaths = const [],
 }) {
   final parsed = parseFile(path: absoluteLibPath, featureSet: FeatureSet.latestLanguageVersion()).unit;
-  final cls = _findTargetClass(parsed, className: className);
+  final cls = _findTargetClassOrExtensionType(parsed, className: className);
   if (cls == null) {
     if (className != null) {
       throw StateError('Не найден класс $className в файле: $absoluteLibPath');
@@ -534,29 +569,50 @@ ParsedClass? parseLibraryClassOptional(
   _mergeDeclarationsFromLibPaths(enumLiterals, allClasses, mergeLibAbsolutePaths);
 
   final methods = <ParsedMethod>[];
-  for (final member in cls.members) {
-    if (member is! MethodDeclaration) continue;
-    final m = member;
-    if (!_isSupportedInstanceMethod(m)) continue;
-    if (_hasUnsupportedParameters(m.parameters)) continue;
+  final members = cls is ClassDeclaration ? cls.members : (cls as ExtensionTypeDeclaration).members;
+  for (final member in members) {
+    if (member is MethodDeclaration) {
+      final m = member;
+      if (!_isSupportedMethod(m)) continue;
+      if (_hasUnsupportedParameters(m.parameters)) continue;
 
-    final params = _paramsFromFormalList(m.parameters, enumLiterals, allClasses, m);
-    methods.add(
-      ParsedMethod(
-        name: m.name.lexeme,
-        params: params,
-        returnType: _returnTypeString(m),
-        isAsync: _methodIsAsync(m),
-        isStream: _methodIsStream(m),
-        snapshotReturnType: _snapshotReturnTypeForMethod(m),
-      ),
-    );
+      final params = _paramsFromFormalList(m.parameters, enumLiterals, allClasses, m);
+      methods.add(
+        ParsedMethod(
+          name: m.name.lexeme,
+          params: params,
+          returnType: _returnTypeString(m),
+          isAsync: _methodIsAsync(m),
+          isStream: _methodIsStream(m),
+          snapshotReturnType: _snapshotReturnTypeForMethod(m),
+          isStatic: m.isStatic,
+        ),
+      );
+    } else if (member is ConstructorDeclaration) {
+      if (member.factoryKeyword != null) {
+        if (member.name?.lexeme.startsWith('_') == true) continue;
+        if (_hasUnsupportedParameters(member.parameters)) continue;
+
+        final params = _paramsFromFormalList(member.parameters, enumLiterals, allClasses, member);
+        methods.add(
+          ParsedMethod(
+            name: member.name?.lexeme ?? '',
+            params: params,
+            returnType: cls.name.lexeme,
+            isAsync: false,
+            isStream: false,
+            snapshotReturnType: cls.name.lexeme,
+            isFactory: true,
+          ),
+        );
+      }
+    }
   }
 
   if (methods.isEmpty) {
     if (className != null) {
       throw StateError(
-        'В классе ${cls.name.lexeme} нет поддерживаемых методов экземпляра: $absoluteLibPath',
+        'В классе ${cls.name.lexeme} нет поддерживаемых методов: $absoluteLibPath',
       );
     }
     return null;

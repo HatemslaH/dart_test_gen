@@ -61,6 +61,8 @@ class MethodSpec {
 
   final bool isAsync;
   final bool isStream;
+  final bool isStatic;
+  final bool isFactory;
   final List<TestCaseRow> testCases;
 
   const MethodSpec({
@@ -70,6 +72,8 @@ class MethodSpec {
     required this.snapshotReturnType,
     this.isAsync = false,
     this.isStream = false,
+    this.isStatic = false,
+    this.isFactory = false,
     required this.testCases,
   });
 }
@@ -192,7 +196,20 @@ String _renderSuccessTest(String className, MethodSpec spec, TestCaseRow row) {
   final label = _argLabel(spec.params, row.argLiterals);
   final inputs = _inputDeclarations(spec.params, row.argLiterals);
   final callArgs = _callArgs(spec.params, row.argLiterals);
-  final syncCall = '$instance.${spec.name}($callArgs)';
+  
+  String syncCall;
+  if (spec.isFactory) {
+    if (spec.name.isEmpty) {
+      syncCall = '$className($callArgs)';
+    } else {
+      syncCall = '$className.${spec.name}($callArgs)';
+    }
+  } else if (spec.isStatic) {
+    syncCall = '$className.${spec.name}($callArgs)';
+  } else {
+    syncCall = '$instance.${spec.name}($callArgs)';
+  }
+
   final async = spec.isAsync || spec.isStream;
   final awaitedCall = spec.isStream ? 'await $syncCall.toList()' : 'await $syncCall';
 
@@ -242,7 +259,20 @@ String _renderThrowsTest(String className, MethodSpec spec, TestCaseRow row) {
   final label = _argLabel(spec.params, row.argLiterals);
   final inputs = _inputDeclarations(spec.params, row.argLiterals);
   final callArgs = _callArgs(spec.params, row.argLiterals);
-  final call = '$instance.${spec.name}($callArgs)';
+  
+  String call;
+  if (spec.isFactory) {
+    if (spec.name.isEmpty) {
+      call = '$className($callArgs)';
+    } else {
+      call = '$className.${spec.name}($callArgs)';
+    }
+  } else if (spec.isStatic) {
+    call = '$className.${spec.name}($callArgs)';
+  } else {
+    call = '$instance.${spec.name}($callArgs)';
+  }
+
   final ex = row.throwsType ?? 'Object';
   final title = _escapeSingleQuoted('${spec.name}($label) throws $ex');
   final async = spec.isAsync || spec.isStream;
@@ -283,9 +313,12 @@ String generateTestFile({
   buf.writeln('// Сгенерировано: ${DateTime.now().toIso8601String()}');
   buf.writeln();
   buf.writeln('void main() {');
-  final recv = receiverInstantiation ?? '$className()';
-  buf.writeln('  final ${className.toLowerCase()} = $recv;');
-  buf.writeln();
+  bool needsInstance = methods.any((m) => !m.isStatic && !m.isFactory);
+  if (needsInstance) {
+    final recv = receiverInstantiation ?? '$className()';
+    buf.writeln('  final ${className.toLowerCase()} = $recv;');
+    buf.writeln();
+  }
 
   for (final spec in methods) {
     buf.writeln("  group('${spec.name}', () {");
