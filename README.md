@@ -1,60 +1,89 @@
 # dart_test_gen
 
-Генератор юнит-тестов для Dart: по одному или нескольким файлам (или каталогам) под `lib/` создаются зеркальные `test/<...>/<имя>_test.dart` с вызовами методов класса. Ожидаемые результаты берутся **снимком** — при генерации код реально выполняется во вспомогательном процессе, а в тесты подставляются литералы (`expect(actual, expected)` или при опции — `closeTo` для скалярного `double`).
+<p align="center">
+  Snapshot-based unit test generator for Dart.
+  <br>
+  Generate `test/**/_test.dart` files by executing your code in a sandbox runner and snapshotting results into expectations.
+</p>
 
-## Возможности
+<p align="center">
+  <img alt="Dart" src="https://img.shields.io/badge/Dart-%3E%3D3.3-0175C2?logo=dart&logoColor=white">
+  <img alt="Type" src="https://img.shields.io/badge/type-CLI-informational">
+  <img alt="Snapshots" src="https://img.shields.io/badge/tests-snapshot--based-blue">
+</p>
 
-- Разбор API через **analyzer**: публичные методы экземпляра, простые параметры (`int`, `double`, `bool`, `String`, `List<int>`, **`List<String>`**, **`Set<int>`**, **`Iterable<int>`**, enum из того же файла или из объединённых `lib`-файлов по зависимостям типов); пользовательские классы из **того же entry-файла** или из таких объединённых файлов — если у типа есть конструктор и публичные поля, для граничных кейсов подставляются два «диагональных» вызова конструктора (см. `ClassInfo` в `source_parser.dart`). Пример: `RgbColor` в `data_toolbox` импортируется из `rgb_color.dart` и попадает в снимок наравне с другими классами из объединённых единиц компиляции.
-- Граничные комбинации аргументов (декартово произведение наборов значений для каждого параметра).
-- Успешные кейсы: `final <параметры> …`, затем `expected`, `actual`, `expect(actual, expected)`; для скалярного `double` при включённой опции — `expect(actual, closeTo(expected, ε))` (см. `dart_test_gen.yaml` и `--use-close-for-double`).
-- Если при снимке метод бросает исключение — генерируется тест с `throwsA(isA<…>())`.
-- Выбор класса: по умолчанию берётся класс с **наибольшим числом** подходящих методов в файле; иначе можно указать `--class`.
+## Table of contents
 
-## Запуск
+- [Quick start](#quick-start)
+- [What it generates](#what-it-generates)
+- [Features](#features)
+- [CLI options](#cli-options)
+- [Configuration (`dart_test_gen.yaml`)](#configuration-dart_test_genyaml)
+- [CI & determinism](#ci--determinism)
+- [Project structure](#project-structure)
+- [Limitations](#limitations)
 
-Из корня пакета (где лежит `pubspec.yaml`):
+## Quick start
+
+From the package root (where `pubspec.yaml` is located):
 
 ```bash
 dart pub get
 dart run dart_test_gen lib/usecases/calculator.dart
-dart run dart_test_gen lib/usecases/data_toolbox.dart
-dart run dart_test_gen lib/usecases -v
 ```
 
-### Опции CLI
+Generate tests for a directory under `lib/`:
 
-- `--class <Name>` — указать класс явно (если в файле несколько классов). Работает только если на выходе ровно один `.dart` файл.
-- `-v`, `--verbose` — подробный лог (stderr), прогресс остаётся на stdout.
-- `--strategy <full|random|happy_path>` — стратегия выбора тест-кейсов (см. ниже).
-- `--max-cases <N>` — максимальное количество успешных кейсов на метод (по умолчанию 200).
-- `--seed <N>` — зерно для воспроизводимого рандома.
-- `--use-close-for-double` — для успешных кейсов с типом снимка `double` генерировать `expect(actual, closeTo(expected, ε))` вместо строгого равенства (по умолчанию выключено).
-- `--double-epsilon <x>` — абсолютный ε для `closeTo` (положительное число; перекрывает значение из YAML для этого запуска).
-- `--config <path>` — путь к файлу конфигурации (по умолчанию `dart_test_gen.yaml`).
-- `--keep-runner` — не удалять временный раннер снимка после успешной генерации (по умолчанию удаляется; при ошибке раннер всегда сохраняется в `${TMP}/dart_test_gen/`). В YAML соответствует ключу `keep_runner: true`.
-- `--dry-run` — выполнить весь пайплайн (включая снимок), но не записывать тест-файлы; вместо этого печатает в stdout пути, которые **были бы** записаны. Удобен для дымовых проверок без изменения рабочего дерева.
-- `--check` — выполнить весь пайплайн и **сравнить** сгенерированный контент с существующим тест-файлом вместо записи. Если файл отсутствует или содержимое расходится (за исключением строки `// Generated: <timestamp>`), выводит краткий diff в stderr и завершается с кодом `1`. Используется как стейдж CI («тесты актуальны и закоммичены»). Несовместим с `--dry-run` (одновременная подача → `exit 64`).
-- `-h`, `--help` — показать справку и выйти.
-- `--version` — напечатать версию пакета и выйти.
+```bash
+dart run dart_test_gen lib/usecases
+```
 
-При ошибке временного раннера снимка CLI печатает в stderr структурированное сообщение: stage (`compile`/`parse`), путь исходного файла и класс/метод, абсолютный путь к сохранённому раннеру, последние строки stderr подпроцесса `dart` и список подсказок («перезапустить с `-v`», открыть файл раннера, приложить его к багрепорту).
+## What it generates
 
-## Конфигурация и сэмплирование
+- **Mirrored paths**: inputs under `lib/` map to tests under `test/` with `*_test.dart` names.
+- **Real execution + snapshot**: the generator runs your code in a helper runner process and writes the observed results into test expectations.
+- **Exceptions become tests**: if a call throws during the snapshot stage, the generated test uses `throwsA(isA<...>())`.
 
-Для управления объёмом генерируемых тестов используется сэмплирование. Оно применяется **после** выполнения всех граничных кейсов:
+## Features
 
-1. **Mandatory bucket**: все кейсы, которые бросают исключение, всегда включаются в тест.
-2. **Optional bucket**: успешные вызовы фильтруются согласно выбранной стратегии и лимиту `max-cases`.
+- **API parsing via `analyzer`**: discovers public instance methods and their parameter/return types.
+- **Edge-case inputs**: builds boundary-value sets for supported primitives and common collections.
+- **Sampling strategies**: keep generation size reasonable with `--strategy` and `--max-cases`.
+- **Floating point stability**: optional `closeTo` assertions for scalar `double` via `--use-close-for-double` / `use_close_for_double`.
+- **CI-friendly modes**: `--dry-run` (no writes) and `--check` (fail if committed tests differ).
 
-### Стратегии (`--strategy`)
+## CLI options
 
-- `full` (по умолчанию) — берутся первые `N` успешных кейсов (где `N` = `max-cases`).
-- `random` — случайная выборка `N` успешных кейсов.
-- `happy_path` — берётся только 1 успешный кейс (первый) + все исключения.
+```
+dart_test_gen — snapshot-based unit test generator for Dart.
 
-### Файл `dart_test_gen.yaml`
+Usage:
+  dart run dart_test_gen <path> [path ...] [options]
 
-Вы можете создать файл конфигурации в корне проекта для настройки параметров по умолчанию или для конкретных методов:
+Arguments:
+  <path>                       .dart file under lib/ or a directory under lib/.
+
+Options:
+  --class <Name>               pick a specific class (only when targets reduce to 1 file).
+  -v, --verbose                verbose log to stderr; progress stays on stdout.
+  --strategy <type>            case sampling strategy: full | random | happy_path.
+  --max-cases <N>              max successful cases per method (default 200).
+  --seed <N>                   seed for the random strategy.
+  --use-close-for-double       use expect(actual, closeTo(expected, eps)) for scalar double.
+  --double-epsilon <x>         absolute epsilon for closeTo (positive finite number).
+  --config <path>              path to config file (default: dart_test_gen.yaml).
+  --keep-runner                keep the temporary snapshot runner file on success.
+  --dry-run                    run the full pipeline but do not write any test files;
+                               prints the would-be output paths to stdout.
+  --check                      run the full pipeline but compare generated content to
+                               existing files instead of writing; exits 1 if any differ.
+  -h, --help                   show this help and exit.
+  --version                    print the package version and exit.
+```
+
+## Configuration (`dart_test_gen.yaml`)
+
+Create `dart_test_gen.yaml` in the project root to set defaults:
 
 ```yaml
 strategy: random
@@ -70,124 +99,50 @@ methods:
     strategy: happy_path
 ```
 
-Ключи `use_close_for_double` и `double_epsilon` задают поведение для **скалярного** `double` в успешных кейсах (по умолчанию сравнение строгое, как раньше). `double_epsilon` должен быть положительным конечным числом; при неверном значении в YAML используется запасной `1e-9`.
+Notes:
+- `use_close_for_double` and `double_epsilon` only affect **scalar** `double` assertions.
+- `double_epsilon` MUST be a positive finite number.
 
-## Пример цикла разработки
+## CI & determinism
 
-1. Реализуете или меняете класс, например `lib/features/my_service.dart`.
-2. Запускаете `dart run dart_test_gen lib/features/my_service.dart` (или папку).
-3. Просматриваете или коммитите `test/features/my_service_test.dart`.
-4. При смене поведения снова запускаете генератор и обновляете снимки (или правите код под уже зафиксированные ожидания).
+Snapshot tests are **real execution**, so results depend on the environment. To keep CI stable:
 
-Снимок кодирует **текущее** поведение: если вы исправляете ошибку в реализации, тесты начнут падать, пока не перегенерируете их или не обновите ожидания осознанно.
+- **Pin the Dart SDK version** in CI (runtime behavior and `double` math can differ across versions).
+- If you see flaky floating-point assertions across platforms, enable:
+  - `use_close_for_double: true` (or pass `--use-close-for-double`)
 
-## Ограничения (кратко)
+### Check that generated tests are up-to-date (`--check`)
 
-См. раздел **TODO** ниже и пример качественного разрыва покрытия в **Проблемы покрытия**: не все конструкции языка поддерживаются, объём комбинаций может быть большим для методов с многими параметрами.
+`--check` runs the full pipeline and compares generated output with committed files instead of writing.
 
----
+- Exits with **code 1** if any file differs.
+- Ignores the `// Generated: <timestamp>` line during comparison.
 
-## Проблемы покрытия (разрыв генерации)
-
-Ниже — пример **анализа разрыва** между сгенерированным тестовым файлом и методами класса `StressShowcase` (`lib/usecases/stress_showcase.dart`). Итог: база генератора рабочая, снимки там, где тесты есть, корректны, но **в каждой группе методов остаются заметные слепые зоны** — полезно при планировании улучшений стратегий и граничных наборов.
-
-### `divide`
-
-1. **Усечённое декартово произведение.** Генератор обрезает набор после ~20 кейсов (для `a` фактически `{0, 1, -1}`). Значения вроде `a = 2`, `10`, `-10` не попадают в тесты; кейсы вроде `divide(10, 3)` отсутствуют. Набор границ для `a` должен быть сопоставим с набором для `b`.
-2. **Нет явного теста на «магическую семёрку».** Ни имён тестов, ни комментариев не подчёркивают скрытую константу `+7`. Кейс вроде `divide(7, 1) == 14` (а не `8`) сразу документирует поведение и ломается, если константу убрать или изменить.
-3. **Смешанные знаки при целочисленном делении.** У Dart `~/` усекает к нулю; ветки `divide(-7, 2)`, `divide(7, -2)`, `divide(-7, -2)` в сгенерированном наборе не представлены.
-
-### `normalize`
-
-1. **Регистр.** Не проверяются `normalize('Hello')`, `normalize('UPPER CASE')`; нужен хотя бы кейс вроде `normalize('ABC') == 'abc'` после `.toLowerCase()`.
-2. **Граница усечения (ровно 10 символов).** Усечение только при `trimmed.length > 10`; ровно 10 символов не должны обрезаться, 11-й — префикс из 10 + `"…"`. Обе границы в генерации отсутствуют.
-3. **Пробелы внутри строки.** `normalize('a b c')` → `'abc'`; в наборе есть только пустой результат после trim (`'  '`), без контента между пробелами.
-4. **Составной кейс.** Нет комбинации trim + lower + удаление пробелов + усечение, например `normalize('  Hello World !!  ')`.
-5. **Побочный эффект `_callCount`.** После трёх вызовов `normalize` ожидается `callCount == 3`, но проверка внизу файла **зависит от порядка** выполнения групп; надёжнее локальный тест у группы `normalize`, сброс состояния или новый экземпляр на группу.
-
-### `processInts`
-
-1. **Список из чётных.** `processInts([2, 4, 6])` → `[0]` (нет нечётных → fallback) не отделён от ветки пустого списка.
-2. **Дедупликация.** `processInts([3, 3, 3])` → дедуп до `[3]` и результат с умножением по индексу не выделен отдельным тестом.
-3. **Семантика «индекс × значение».** Один нетривиальный кейс `[1, -1, 2]`; для трёх и более нечётных важно показать умножение на **индекс в отфильтрованном списке**, например `processInts([1, 3, 5])` → `[0, 3, 10]`.
-4. **Отрицательные нечётные.** Например `processInts([-3, -1, 1])` после сортировки даёт `[0, -1, 2]` — отрицательные значения для `divide` генерируются, для `processInts` — нет.
-
-### `tribonacci`
-
-1. **Мало нетривиальных `n`.** В наборе часто только `n ∈ {0, 1, 2, 10}`; стоит добавить `3, 4, 5` как первые постбазовые значения рекуррентности (`T(3)=2`, `T(4)=4`, `T(5)=7`).
-2. **Кэш между вызовами.** Экземпляр хранит `_history`; последовательность вроде `tribonacci(10)` затем `tribonacci(5)` на одном объекте проверяет путь cache hit.
-3. **Большие `n`.** Например `tribonacci(20)` (ожидаемо порядка `35890`) — проверка на переполнение/глубину стека; генерация часто останавливается на `n=10`.
-
-### `runLengthEncode`
-
-1. **Один повторяющийся символ.** `runLengthEncode('aaaa') == 'a4'` — простейший нетривиальный случай для цикла подсчёта.
-2. **Все символы уникальны.** `runLengthEncode('abcd') == 'a1b1c1d1'` — явное решение «всегда дописывать 1», а не опускать для одиночек.
-3. **Регистр.** `runLengthEncode('AAAaaa') == 'A3a3'` — в исходнике отмечено как намеренное поведение.
-4. **Эмодзи / руны.** Комментарий в коде про `'😀😀😀b'` и `codeUnits` vs `runes`; ожидаемо `'😀3b1'` — критичный краевой случай, часто отсутствует в генерации.
-5. **Уже «закодированные» или цифры.** `runLengthEncode('a1b2')` даёт строку, где цифры — отдельные символы; стоит зафиксировать тестом как документированное поведение.
-
-### Сквозные и структурные замечания
-
-1. **Один экземпляр на весь файл.** В `main()` один `StressShowcase()`; `tribonacci` и `normalize` меняют состояние — порядок тестов влияет на результат. Лучше новый объект на группу или `setUp` со сбросом.
-2. **Геттер `callCount` как хрупкий интеграционный тест.** Утверждение `== 3` верно только если ровно три вызова `normalize` уже выполнились в нужном порядке; смена числа кейсов или порядка ломает тест неочевидно.
-3. **Асимметрия границ для `a` в `divide`.** Покрытие `a ∈ {0, 1, -1}` без `-2`, `-10` при более широком наборе для `b` делает произведение визуально несимметричным без явной причины в спецификации.
-
----
-
-## TODO / дорожная карта
-
-Приоритет выше → делать раньше.
-
-1. [x] **Ограничение и выбор кейсов.** Реализовано через стратегии (`full`, `random`, `happy_path`) и лимиты в YAML/CLI.
-
-2. [x] **Nullable и значения по умолчанию.** Для параметров выводятся nullable (`?` → в кейсы добавляется `null`), значения по умолчанию из AST, опциональные позиционные и именованные аргументы (`__OMITTED__`). Остаются ограничения на сложные сигнатуры и покрытие «всех» смысловых комбинаций для больших API.
-
-3. [x] **Async / `Future` / `Stream`.** Поддержаны: снимок в `async` раннере с `await` / `.toList()` для потоков, тесты с `() async` и `expectLater` для исключений. Для `Stream<T>` ожидаемое значение в снимке — `List<T>`. Пример: `lib/usecases/async_showcase/`.
-
-4. [x] **Расширение типов (параметры и возвраты).** Уже разобраны: примитивы, `String`, `List<int>`, **`List<String>`**, **`Set<int>`**, **`Iterable<int>`** (компактные граничные литералы в `test_generator.dart`), enum и пользовательские классы через `ClassInfo` + `resolveReferencedLibAbsolutePaths`. Для возврата: примитивы, `List<int>`, **`List<String>`**, **`Set<int>`**, **`Iterable<int>`** (литералы в `dartLiteralFromJson`), `Map<String, int>`; прочие обобщения (`Map<K,V>` в параметрах, `Set<String>`, …) по-прежнему часто попадают в `ParamType.custom_` без литералов или в fallback снимка. Пример регрессий: `lib/usecases/type_extensions_showcase/`. Долгосрочно — более широкие дженерики, `toJson`/плагины, ручные адаптеры.
-
-5. [x] **Статические методы, factory, extension types.** Сейчас только нестатические методы обычного класса.
-
-6. [x] **Геттеры, сеттеры, операторы.** Поддержаны: разбор `MethodKind` в `source_parser.dart`, снимок и тесты с корректным синтаксисом (`obj.prop`, `obj.prop = v`, `obj + x`, `obj[i]`, `obj[i] = v`, унарные `~` / `-`). Пример: `lib/usecases/getters_setters_operators_showcase/`.
-
-7. [x] **Устойчивость чисел с плавающей точкой.** Опционально: `use_close_for_double` и `double_epsilon` в `dart_test_gen.yaml` (и в блоке `methods:` для конкретного метода), флаги CLI `--use-close-for-double` и `--double-epsilon`. Для скалярного `double` (в т.ч. после `await` у `Future<double>`) генерируется `closeTo`. Пример: `lib/usecases/floating_point_showcase/`.
-
-8. [x] **DX и CLI.** Реализован единый бинарь `dart_test_gen` (`pubspec.yaml` → `executables:`); `bin/generate.dart` сохранён как shim с deprecation-warning. Добавлены `--help`, `--version`, `--keep-runner` (и `keep_runner:` в YAML). При сбое временного раннера снимка вместо голого stacktrace печатается структурированное сообщение со stage (`compile`/`parse`), контекстом (файл, класс, метод), путём к сохранённому раннер-файлу (`${TMP}/dart_test_gen/…`), хвостом stderr `dart`-подпроцесса и actionable-подсказками.
-
-9. [x] **CI и детерминизм.** Добавлены флаги `--dry-run` и `--check`. Описание SDK-зависимости снимка и пример GitHub Actions — в разделе **«CI и детерминизм»** ниже.
-
----
-
-## CI и детерминизм
-
-Снимок — это реальный запуск кода, поэтому результат зависит от среды:
-
-- **Dart SDK.** `double`-арифметика, runtime-имена типов и поведение stdlib могут различаться между версиями SDK. Пиньте версию в CI через `dart-version` / `setup-dart`.
-- **Приватные runtime-типы.** Имена вроде `_Exception`, `_AssertionError` нормализуются автоматически (см. whitelist в `snapshot.dart`). Публичные имена (`ArgumentError`, `StateError` и др.) проходят без изменений.
-- **`double`-ассерты.** Для плавающей точки включайте `use_close_for_double: true` в `dart_test_gen.yaml`, чтобы сгладить IEEE-754 разницу между платформами.
-
-### Проверка актуальности тестов в CI (`--check`)
-
-Флаг `--check` запускает полный пайплайн и сравнивает результат с уже закоммиченными тест-файлами. Строка `// Generated: <timestamp>` при сравнении игнорируется. Если хотя бы один файл расходится — выход с кодом `1` и краткий diff в stderr.
-
-Пример стейджа для GitHub Actions:
+Example (GitHub Actions step):
 
 ```yaml
 - name: Check generated tests are up-to-date
   run: dart run dart_test_gen lib --check
 ```
 
-### Дымовая проверка без записи (`--dry-run`)
+### Smoke-check without writing (`--dry-run`)
+
+`--dry-run` runs the full pipeline but does not write any test files. It prints the would-be output paths to stdout:
 
 ```bash
 dart run dart_test_gen lib --dry-run
 ```
 
-Выводит пути, которые **были бы** сгенерированы, но ничего не пишет на диск. Полезно для быстрой проверки, что генератор «видит» нужные файлы.
+## Project structure
 
----
+- `bin/generate.dart`: CLI entry point (shim).
+- `lib/`: implementation:
+  - `source_parser.dart`: API parsing via analyzer
+  - `snapshot.dart`: snapshot runner + result normalization
+  - `test_generator.dart`: Dart test output generation
+  - `generate_pipeline.dart`: orchestration
 
-## Лицензия и структура проекта
+## Limitations
 
-- `bin/generate.dart` — точка входа CLI.
-- `lib/` — парсинг (`source_parser.dart`), снимок (`snapshot.dart`), шаблоны тестов (`test_generator.dart`), оркестрация (`generate_pipeline.dart`).
+- Not all Dart language constructs/types are supported yet (especially complex generics and certain advanced signatures).
+- Methods with many parameters can produce a large combinatorial set of cases; use sampling (`--strategy`, `--max-cases`) to control size.
