@@ -2,13 +2,13 @@ import 'package:test/test.dart';
 import 'package:example/usecases/optional_types/custom_item.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T16:44:45.165499
+// Generated: 2026-05-13T17:13:25.752618
 
 void main() {
   final customitem = CustomItem(id: 0, name: '');
 
   group('toString', () {
-    test('toString', () {
+    test('toString returns \'CustomItem(id: 0, name: )\'', () {
 
       final expected = 'CustomItem(id: 0, name: )';
       final actual = customitem.toString();
@@ -17,12 +17,12 @@ void main() {
   });
 
   group('operator ==', () {
-    test('operator ==(0)', () {
+    test('operator ==(0) returns false', () {
       final other = 0;
       final actual = customitem == other;
       expect(actual, isFalse);
     });
-    test('operator ==(\'str\')', () {
+    test('operator ==(\'str\') returns false', () {
       final other = 'str';
       final actual = customitem == other;
       expect(actual, isFalse);

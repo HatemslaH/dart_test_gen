@@ -22,6 +22,7 @@ void main() {
         ),
       );
       expect(out, contains('expect(actual, isTrue)'));
+      expect(out, contains(r"test('isOk returns true', ()"));
       expect(out, isNot(contains('final expected = true')));
     });
 
@@ -34,6 +35,7 @@ void main() {
         ),
       );
       expect(out, contains('final expected = true'));
+      expect(out, contains(r"test('isOk returns true', ()"));
       expect(out, contains('expect(actual, expected)'));
     });
 
@@ -50,6 +52,7 @@ void main() {
         generateTestFile(className: 'Box', importPath: 'b.dart', methods: [spec]),
       );
       expect(out, contains('expect(actual, isNull)'));
+      expect(out, contains(r"test('maybe returns null', ()"));
       expect(out, isNot(contains('final expected = null')));
     });
 
@@ -66,6 +69,7 @@ void main() {
         generateTestFile(className: 'Dyn', importPath: 'd.dart', methods: [spec]),
       );
       expect(out, contains('final expected = true'));
+      expect(out, contains(r"test('m returns true', ()"));
       expect(out, contains('expect(actual, expected)'));
     });
   });

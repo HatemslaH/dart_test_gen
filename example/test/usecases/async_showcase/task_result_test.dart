@@ -2,18 +2,18 @@ import 'package:test/test.dart';
 import 'package:example/usecases/async_showcase/task_result.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T16:44:45.075721
+// Generated: 2026-05-13T17:13:25.833562
 
 void main() {
   final taskresult = TaskResult('', 0);
 
   group('operator ==', () {
-    test('operator ==(0)', () {
+    test('operator ==(0) returns false', () {
       final other = 0;
       final actual = taskresult == other;
       expect(actual, isFalse);
     });
-    test('operator ==(\'str\')', () {
+    test('operator ==(\'str\') returns false', () {
       final other = 'str';
       final actual = taskresult == other;
       expect(actual, isFalse);

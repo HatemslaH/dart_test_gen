@@ -2,18 +2,18 @@ import 'package:test/test.dart';
 import 'package:example/usecases/optional_types/another_class.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T16:44:45.139131
+// Generated: 2026-05-13T17:13:25.821478
 
 void main() {
   final anotherclass = AnotherClass('', 0.0);
 
   group('operator ==', () {
-    test('operator ==(0)', () {
+    test('operator ==(0) returns false', () {
       final other = 0;
       final actual = anotherclass == other;
       expect(actual, isFalse);
     });
-    test('operator ==(\'str\')', () {
+    test('operator ==(\'str\') returns false', () {
       final other = 'str';
       final actual = anotherclass == other;
       expect(actual, isFalse);

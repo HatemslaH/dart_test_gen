@@ -2,18 +2,18 @@ import 'package:test/test.dart';
 import 'package:example/usecases/type_extensions_showcase/counter_label.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T16:44:45.079721
+// Generated: 2026-05-13T17:13:25.922054
 
 void main() {
   final counterlabel = CounterLabel(0, '');
 
   group('operator ==', () {
-    test('operator ==(0)', () {
+    test('operator ==(0) returns false', () {
       final other = 0;
       final actual = counterlabel == other;
       expect(actual, isFalse);
     });
-    test('operator ==(\'str\')', () {
+    test('operator ==(\'str\') returns false', () {
       final other = 'str';
       final actual = counterlabel == other;
       expect(actual, isFalse);

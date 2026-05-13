@@ -2,18 +2,18 @@ import 'package:test/test.dart';
 import 'package:example/usecases/type_extensions_showcase/name_tag.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T16:44:45.057045
+// Generated: 2026-05-13T17:13:25.809449
 
 void main() {
   final nametag = NameTag('');
 
   group('operator ==', () {
-    test('operator ==(0)', () {
+    test('operator ==(0) returns false', () {
       final other = 0;
       final actual = nametag == other;
       expect(actual, isFalse);
     });
-    test('operator ==(\'str\')', () {
+    test('operator ==(\'str\') returns false', () {
       final other = 'str';
       final actual = nametag == other;
       expect(actual, isFalse);

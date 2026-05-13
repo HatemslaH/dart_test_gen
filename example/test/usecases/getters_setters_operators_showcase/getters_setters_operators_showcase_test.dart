@@ -2,13 +2,13 @@ import 'package:test/test.dart';
 import 'package:example/usecases/getters_setters_operators_showcase/getters_setters_operators_showcase.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T16:44:45.165499
+// Generated: 2026-05-13T17:13:25.973904
 
 void main() {
   final getterssettersoperatorsshowcase = GettersSettersOperatorsShowcase(a: 0);
 
   group('getter aValue', () {
-    test('getter aValue', () {
+    test('getter aValue returns 0', () {
 
       final expected = 0;
       final actual = getterssettersoperatorsshowcase.aValue;
@@ -60,7 +60,7 @@ void main() {
   });
 
   group('getter defaultSeed', () {
-    test('getter defaultSeed', () {
+    test('getter defaultSeed returns 42', () {
 
       final expected = 42;
       final actual = GettersSettersOperatorsShowcase.defaultSeed;
@@ -69,43 +69,43 @@ void main() {
   });
 
   group('operator +', () {
-    test('operator +(0)', () {
+    test('operator +(0) returns -999', () {
       final n = 0;
       final expected = -999;
       final actual = getterssettersoperatorsshowcase + n;
       expect(actual, expected);
     });
-    test('operator +(1)', () {
+    test('operator +(1) returns -998', () {
       final n = 1;
       final expected = -998;
       final actual = getterssettersoperatorsshowcase + n;
       expect(actual, expected);
     });
-    test('operator +(-1)', () {
+    test('operator +(-1) returns -1000', () {
       final n = -1;
       final expected = -1000;
       final actual = getterssettersoperatorsshowcase + n;
       expect(actual, expected);
     });
-    test('operator +(2)', () {
+    test('operator +(2) returns -997', () {
       final n = 2;
       final expected = -997;
       final actual = getterssettersoperatorsshowcase + n;
       expect(actual, expected);
     });
-    test('operator +(-2)', () {
+    test('operator +(-2) returns -1001', () {
       final n = -2;
       final expected = -1001;
       final actual = getterssettersoperatorsshowcase + n;
       expect(actual, expected);
     });
-    test('operator +(10)', () {
+    test('operator +(10) returns -989', () {
       final n = 10;
       final expected = -989;
       final actual = getterssettersoperatorsshowcase + n;
       expect(actual, expected);
     });
-    test('operator +(-10)', () {
+    test('operator +(-10) returns -1009', () {
       final n = -10;
       final expected = -1009;
       final actual = getterssettersoperatorsshowcase + n;
@@ -114,43 +114,43 @@ void main() {
   });
 
   group('operator []', () {
-    test('operator [](0)', () {
+    test('operator [](0) returns 10', () {
       final index = 0;
       final expected = 10;
       final actual = getterssettersoperatorsshowcase[index];
       expect(actual, expected);
     });
-    test('operator [](1)', () {
+    test('operator [](1) returns 20', () {
       final index = 1;
       final expected = 20;
       final actual = getterssettersoperatorsshowcase[index];
       expect(actual, expected);
     });
-    test('operator [](-1)', () {
+    test('operator [](-1) returns 10', () {
       final index = -1;
       final expected = 10;
       final actual = getterssettersoperatorsshowcase[index];
       expect(actual, expected);
     });
-    test('operator [](2)', () {
+    test('operator [](2) returns 30', () {
       final index = 2;
       final expected = 30;
       final actual = getterssettersoperatorsshowcase[index];
       expect(actual, expected);
     });
-    test('operator [](-2)', () {
+    test('operator [](-2) returns 10', () {
       final index = -2;
       final expected = 10;
       final actual = getterssettersoperatorsshowcase[index];
       expect(actual, expected);
     });
-    test('operator [](10)', () {
+    test('operator [](10) returns 30', () {
       final index = 10;
       final expected = 30;
       final actual = getterssettersoperatorsshowcase[index];
       expect(actual, expected);
     });
-    test('operator [](-10)', () {
+    test('operator [](-10) returns 10', () {
       final index = -10;
       final expected = 10;
       final actual = getterssettersoperatorsshowcase[index];
@@ -512,7 +512,7 @@ void main() {
   });
 
   group('operator ~', () {
-    test('operator ~', () {
+    test('operator ~ returns 998', () {
 
       final expected = 998;
       final actual = ~getterssettersoperatorsshowcase;
@@ -521,7 +521,7 @@ void main() {
   });
 
   group('operator -', () {
-    test('operator -', () {
+    test('operator - returns 999', () {
 
       final expected = 999;
       final actual = -getterssettersoperatorsshowcase;

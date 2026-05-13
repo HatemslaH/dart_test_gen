@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/exception_throws_showcase.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T16:44:45.079721
+// Generated: 2026-05-13T17:13:25.946066
 
 void main() {
   final exceptionthrowsshowcase = ExceptionThrowsShowcase();
@@ -24,19 +24,19 @@ void main() {
       final x = -10;
       expect(() => exceptionthrowsshowcase.needPositive(x), throwsA(isA<Exception>()));
     });
-    test('needPositive(1)', () {
+    test('needPositive(1) returns 1', () {
       final x = 1;
       final expected = 1;
       final actual = exceptionthrowsshowcase.needPositive(x);
       expect(actual, expected);
     });
-    test('needPositive(2)', () {
+    test('needPositive(2) returns 2', () {
       final x = 2;
       final expected = 2;
       final actual = exceptionthrowsshowcase.needPositive(x);
       expect(actual, expected);
     });
-    test('needPositive(10)', () {
+    test('needPositive(10) returns 10', () {
       final x = 10;
       final expected = 10;
       final actual = exceptionthrowsshowcase.needPositive(x);
@@ -49,37 +49,37 @@ void main() {
       final x = 0;
       expect(() => exceptionthrowsshowcase.needNonZero(x), throwsA(isA<ArgumentError>()));
     });
-    test('needNonZero(1)', () {
+    test('needNonZero(1) returns 1', () {
       final x = 1;
       final expected = 1;
       final actual = exceptionthrowsshowcase.needNonZero(x);
       expect(actual, expected);
     });
-    test('needNonZero(-1)', () {
+    test('needNonZero(-1) returns -1', () {
       final x = -1;
       final expected = -1;
       final actual = exceptionthrowsshowcase.needNonZero(x);
       expect(actual, expected);
     });
-    test('needNonZero(2)', () {
+    test('needNonZero(2) returns 2', () {
       final x = 2;
       final expected = 2;
       final actual = exceptionthrowsshowcase.needNonZero(x);
       expect(actual, expected);
     });
-    test('needNonZero(-2)', () {
+    test('needNonZero(-2) returns -2', () {
       final x = -2;
       final expected = -2;
       final actual = exceptionthrowsshowcase.needNonZero(x);
       expect(actual, expected);
     });
-    test('needNonZero(10)', () {
+    test('needNonZero(10) returns 10', () {
       final x = 10;
       final expected = 10;
       final actual = exceptionthrowsshowcase.needNonZero(x);
       expect(actual, expected);
     });
-    test('needNonZero(-10)', () {
+    test('needNonZero(-10) returns -10', () {
       final x = -10;
       final expected = -10;
       final actual = exceptionthrowsshowcase.needNonZero(x);
@@ -92,7 +92,7 @@ void main() {
       final open = false;
       expect(() => exceptionthrowsshowcase.requireOpen(open), throwsA(isA<StateError>()));
     });
-    test('requireOpen(true)', () {
+    test('requireOpen(true) returns \'open\'', () {
       final open = true;
       final expected = 'open';
       final actual = exceptionthrowsshowcase.requireOpen(open);
@@ -124,31 +124,31 @@ void main() {
       final x = -1;
       expect(() => exceptionthrowsshowcase.requireEven(x), throwsA(isA<AssertionError>()));
     });
-    test('requireEven(0)', () {
+    test('requireEven(0) returns 0', () {
       final x = 0;
       final expected = 0;
       final actual = exceptionthrowsshowcase.requireEven(x);
       expect(actual, expected);
     });
-    test('requireEven(2)', () {
+    test('requireEven(2) returns 2', () {
       final x = 2;
       final expected = 2;
       final actual = exceptionthrowsshowcase.requireEven(x);
       expect(actual, expected);
     });
-    test('requireEven(-2)', () {
+    test('requireEven(-2) returns -2', () {
       final x = -2;
       final expected = -2;
       final actual = exceptionthrowsshowcase.requireEven(x);
       expect(actual, expected);
     });
-    test('requireEven(10)', () {
+    test('requireEven(10) returns 10', () {
       final x = 10;
       final expected = 10;
       final actual = exceptionthrowsshowcase.requireEven(x);
       expect(actual, expected);
     });
-    test('requireEven(-10)', () {
+    test('requireEven(-10) returns -10', () {
       final x = -10;
       final expected = -10;
       final actual = exceptionthrowsshowcase.requireEven(x);

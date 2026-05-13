@@ -116,6 +116,9 @@ const Map<ParamType, List<String>> _boundaryValues = {
   ParamType.custom_: const [], // only with literalValues
 };
 
+/// Descriptive `test('…')` titles include the expected value; cap length so runners stay readable.
+const int _kMaxDescriptiveTestTitleLength = 220;
+
 List<List<String>> generateBoundaryCases(List<Param> params) {
   if (params.isEmpty) return [[]];
 
@@ -291,6 +294,25 @@ String _testCaseTitleArgs(MethodSpec spec, String label) {
   }
 }
 
+String _expectedOutcomePhrase(String expectedLiteral, {required bool useClose}) {
+  final e = expectedLiteral.trim();
+  if (useClose) {
+    return 'returns a value close to $e';
+  }
+  return 'returns $e';
+}
+
+/// Compact fragment is [_testCaseTitleArgs]; descriptive adds a `returns …` / `closeTo` phrase unless too long.
+String _successTestTitle(MethodSpec spec, String label, String expectedLiteral, {required bool useClose}) {
+  final invocationPart = _testCaseTitleArgs(spec, label);
+  final outcome = _expectedOutcomePhrase(expectedLiteral, useClose: useClose);
+  final descriptive = '$invocationPart $outcome';
+  if (descriptive.length > _kMaxDescriptiveTestTitleLength) {
+    return invocationPart;
+  }
+  return descriptive;
+}
+
 /// Instance getter `hashCode`: do not compare to the snapshot literal (unstable across processes);
 /// instead assert consistency between two identically constructed objects.
 bool _isInstanceHashCodeGetter(MethodSpec spec) =>
@@ -337,7 +359,6 @@ String _renderSuccessTest(String className, MethodSpec spec, TestCaseRow row) {
   final awaitedCall = spec.isStream ? 'await $syncCall.toList()' : 'await $syncCall';
 
   final titlePart = _testCaseTitleArgs(spec, label);
-  final titleOk = _escapeSingleQuoted(titlePart);
   if (spec.snapshotReturnType == 'void') {
     final title = _escapeSingleQuoted('$titlePart runs without error');
     if (async) {
@@ -371,6 +392,10 @@ $inputs
       : 'expect(actual, expected);';
 
   final expectedDecl = (useClose || matcherSecond == null) ? '      final expected = $expected;\n' : '';
+
+  final titleOk = _escapeSingleQuoted(
+    _successTestTitle(spec, label, expected, useClose: useClose),
+  );
 
   if (async) {
     return '''
