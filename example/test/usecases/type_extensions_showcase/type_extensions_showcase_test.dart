@@ -4,7 +4,7 @@ import 'package:example/usecases/type_extensions_showcase/counter_label.dart';
 import 'package:example/usecases/type_extensions_showcase/name_tag.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T17:13:26.131613
+// Generated: 2026-05-13T17:57:11.062068
 
 void main() {
   final typeextensionsshowcase = TypeExtensionsShowcase();

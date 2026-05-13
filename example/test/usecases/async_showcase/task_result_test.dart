@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/async_showcase/task_result.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T17:13:25.833562
+// Generated: 2026-05-13T17:57:10.776793
 
 void main() {
   final taskresult = TaskResult('', 0);

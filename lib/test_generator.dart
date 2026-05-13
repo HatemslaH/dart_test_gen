@@ -1,6 +1,3 @@
-import 'dart:io';
-
-/// How a class member participates in snapshots and tests (method, getter, setter, operator).
 enum MethodKind {
   method,
   getter,
@@ -498,11 +495,6 @@ String generateTestFile({
 
   buf.writeln('}');
   return buf.toString();
-}
-
-void writeTestFile(String path, String content) {
-  File(path).parent.createSync(recursive: true);
-  File(path).writeAsStringSync(content);
 }
 
 /// Removes the generated timestamp banner line (English or legacy Cyrillic prefix).

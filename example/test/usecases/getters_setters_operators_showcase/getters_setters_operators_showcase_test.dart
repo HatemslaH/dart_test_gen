@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/getters_setters_operators_showcase/getters_setters_operators_showcase.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T17:13:25.973904
+// Generated: 2026-05-13T17:57:10.998739
 
 void main() {
   final getterssettersoperatorsshowcase = GettersSettersOperatorsShowcase(a: 0);

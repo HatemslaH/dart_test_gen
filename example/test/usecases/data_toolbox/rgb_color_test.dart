@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/data_toolbox/rgb_color.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T17:13:25.833562
+// Generated: 2026-05-13T17:57:10.832942
 
 void main() {
   final rgbcolor = RgbColor(0, 0, 0);
