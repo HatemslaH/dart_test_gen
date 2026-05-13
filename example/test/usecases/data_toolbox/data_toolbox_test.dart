@@ -4,7 +4,7 @@ import 'package:example/usecases/data_toolbox/log_level.dart';
 import 'package:example/usecases/data_toolbox/rgb_color.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-11T21:35:02.912274
+// Generated: 2026-05-13T16:44:45.178746
 
 void main() {
   final datatoolbox = DataToolbox();
@@ -649,21 +649,18 @@ void main() {
   group('isUrgent', () {
     test('isUrgent(LogLevel.trace)', () {
       final level = LogLevel.trace;
-      final expected = false;
       final actual = datatoolbox.isUrgent(level);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isUrgent(LogLevel.warning)', () {
       final level = LogLevel.warning;
-      final expected = false;
       final actual = datatoolbox.isUrgent(level);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isUrgent(LogLevel.fatal)', () {
       final level = LogLevel.fatal;
-      final expected = true;
       final actual = datatoolbox.isUrgent(level);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
   });
 

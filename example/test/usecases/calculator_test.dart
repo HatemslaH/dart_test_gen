@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/calculator.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-11T21:50:09.322516
+// Generated: 2026-05-13T16:51:07.522333
 
 void main() {
   final calculator = Calculator();
@@ -3085,90 +3085,76 @@ void main() {
   group('isEven', () {
     test('isEven(0)', () {
       final a = 0;
-      final expected = true;
       final actual = calculator.isEven(a);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
     test('isEven(1)', () {
       final a = 1;
-      final expected = false;
       final actual = calculator.isEven(a);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isEven(-1)', () {
       final a = -1;
-      final expected = false;
       final actual = calculator.isEven(a);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isEven(2)', () {
       final a = 2;
-      final expected = true;
       final actual = calculator.isEven(a);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
     test('isEven(-2)', () {
       final a = -2;
-      final expected = true;
       final actual = calculator.isEven(a);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
     test('isEven(10)', () {
       final a = 10;
-      final expected = true;
       final actual = calculator.isEven(a);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
     test('isEven(-10)', () {
       final a = -10;
-      final expected = true;
       final actual = calculator.isEven(a);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
   });
 
   group('isOdd', () {
     test('isOdd(0)', () {
       final a = 0;
-      final expected = false;
       final actual = calculator.isOdd(a);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isOdd(1)', () {
       final a = 1;
-      final expected = true;
       final actual = calculator.isOdd(a);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
     test('isOdd(-1)', () {
       final a = -1;
-      final expected = true;
       final actual = calculator.isOdd(a);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
     test('isOdd(2)', () {
       final a = 2;
-      final expected = false;
       final actual = calculator.isOdd(a);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isOdd(-2)', () {
       final a = -2;
-      final expected = false;
       final actual = calculator.isOdd(a);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isOdd(10)', () {
       final a = 10;
-      final expected = false;
       final actual = calculator.isOdd(a);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isOdd(-10)', () {
       final a = -10;
-      final expected = false;
       final actual = calculator.isOdd(a);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
   });
 

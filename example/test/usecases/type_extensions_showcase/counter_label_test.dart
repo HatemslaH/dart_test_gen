@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/type_extensions_showcase/counter_label.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-11T21:35:02.780103
+// Generated: 2026-05-13T16:44:45.079721
 
 void main() {
   final counterlabel = CounterLabel(0, '');
@@ -10,15 +10,13 @@ void main() {
   group('operator ==', () {
     test('operator ==(0)', () {
       final other = 0;
-      final expected = false;
       final actual = counterlabel == other;
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('operator ==(\'str\')', () {
       final other = 'str';
-      final expected = false;
       final actual = counterlabel == other;
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
   });
 

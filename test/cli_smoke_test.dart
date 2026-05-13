@@ -29,6 +29,8 @@ void main() {
         '--seed',
         '--use-close-for-double',
         '--double-epsilon',
+        '--expect-matchers-bool-null',
+        '--no-expect-matchers-bool-null',
         '--config',
         '--keep-runner',
         '--dry-run',

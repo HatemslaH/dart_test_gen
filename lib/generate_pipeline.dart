@@ -7,9 +7,9 @@ import 'package:path/path.dart' as p;
 import 'cli_log.dart';
 import 'cli_progress.dart';
 import 'gen_config.dart';
+import 'resolved_dependencies.dart';
 import 'sampling.dart';
 import 'snapshot.dart';
-import 'resolved_dependencies.dart';
 import 'source_parser.dart';
 import 'test_generator.dart';
 
@@ -27,9 +27,7 @@ String formatSnapshotRunnerFailure(SnapshotRunnerFailure f) {
     ctx.write(']');
   }
   final tail = f.dartStderrTail.trimRight();
-  final indentedTail = tail.isEmpty
-      ? '    <empty>'
-      : tail.split('\n').map((l) => '    $l').join('\n');
+  final indentedTail = tail.isEmpty ? '    <empty>' : tail.split('\n').map((l) => '    $l').join('\n');
   return [
     'Snapshot runner failed (${f.stage}) for $ctx',
     '  runner kept at: ${f.runnerPath}',
@@ -170,6 +168,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   String? configPath,
   bool? useCloseForDouble,
   double? doubleEpsilon,
+  bool? useExpectMatchersBoolNull,
   bool? keepRunner,
   bool? dryRun,
   bool? check,
@@ -182,6 +181,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   String? configPath;
   bool? useCloseForDouble;
   double? doubleEpsilon;
+  bool? useExpectMatchersBoolNull;
   bool? keepRunner;
   bool? dryRun;
   bool? check;
@@ -203,6 +203,12 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       configPath = args[++i];
     } else if (a == '--use-close-for-double') {
       useCloseForDouble = true;
+    } else if (a == '--expect-matchers-bool-null') {
+      // If both `--expect-matchers-bool-null` and `--no-expect-matchers-bool-null`
+      // appear, the last one on the command line wins.
+      useExpectMatchersBoolNull = true;
+    } else if (a == '--no-expect-matchers-bool-null') {
+      useExpectMatchersBoolNull = false;
     } else if (a == '--keep-runner') {
       keepRunner = true;
     } else if (a == '--dry-run') {
@@ -213,7 +219,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       final raw = args[++i];
       final parsed = double.tryParse(raw);
       if (parsed == null || !parsed.isFinite || parsed <= 0) {
-        CliLog.err('--double-epsilon: ожидается конечное число > 0, получено: $raw');
+        CliLog.err('--double-epsilon: expected a finite number > 0, got: $raw');
         exit(64);
       }
       doubleEpsilon = parsed;
@@ -223,16 +229,18 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
   }
   if (rest.isEmpty) {
     CliLog.err(
-      'Использование: dart run bin/generate.dart <путь> [путь …] [опции]\n'
-      'Опции:\n'
-      '  --class <Name>      только при одном целевом .dart после фильтра.\n'
-      '  -v, --verbose       подробный лог (stderr), прогресс остаётся на stdout.\n'
-      '  --strategy <type>   стратегия сэмплирования: full, random, happy_path.\n'
-      '  --max-cases <N>     макс. кол-во успешных кейсов на метод (по умолчанию 200).\n'
-      '  --seed <N>          зерно для random стратегии.\n'
-      '  --use-close-for-double  для `double`: генерировать expect(..., closeTo(...)).\n'
-      '  --double-epsilon <x>    абсолютный epsilon для closeTo (перекрывает YAML).\n'
-      '  --config <path>     путь к файлу конфигурации (по умолчанию dart_test_gen.yaml).',
+      'Usage: dart run dart_test_gen <path> [path …] [options]\n'
+      'Options:\n'
+      '  --class <Name>                  only when targets reduce to a single .dart file after filtering.\n'
+      '  -v, --verbose                   verbose log to stderr; progress stays on stdout.\n'
+      '  --strategy <type>               case sampling strategy: full, random, happy_path.\n'
+      '  --max-cases <N>                 max successful cases per method (default 200).\n'
+      '  --seed <N>                      seed for the random strategy.\n'
+      '  --use-close-for-double          for `double`: emit expect(..., closeTo(...)).\n'
+      '  --double-epsilon <x>            absolute epsilon for closeTo (overrides YAML).\n'
+      '  --expect-matchers-bool-null     for bool/null: isTrue, isFalse, isNull (overrides YAML).\n'
+      '  --no-expect-matchers-bool-null  classic final expected + expect(actual, expected).\n'
+      '  --config <path>                 path to config file (default: dart_test_gen.yaml).',
     );
     exit(64);
   }
@@ -246,6 +254,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
     configPath: configPath,
     useCloseForDouble: useCloseForDouble,
     doubleEpsilon: doubleEpsilon,
+    useExpectMatchersBoolNull: useExpectMatchersBoolNull,
     keepRunner: keepRunner,
     dryRun: dryRun,
     check: check,
@@ -280,12 +289,12 @@ List<String> expandGenerationTargets(String cwd, List<String> inputs) {
     final abs = _absolute(cwd, raw);
     final type = FileSystemEntity.typeSync(abs);
     if (type == FileSystemEntityType.notFound) {
-      CliLog.err('Не найден путь: $abs');
+      CliLog.err('Path not found: $abs');
       exit(1);
     }
     if (type == FileSystemEntityType.file) {
       if (!abs.endsWith('.dart')) {
-        CliLog.err('Укажите файл .dart: $abs');
+        CliLog.err('Expected a .dart file: $abs');
         exit(1);
       }
       if (seen.add(abs)) out.add(abs);
@@ -297,7 +306,7 @@ List<String> expandGenerationTargets(String cwd, List<String> inputs) {
       }
       continue;
     }
-    CliLog.err('Неподдерживаемый тип пути: $abs');
+    CliLog.err('Unsupported path type: $abs');
     exit(1);
   }
   return out;
@@ -308,7 +317,7 @@ String testOutputPathForLib(String packageRoot, String absoluteLibPath) {
   final libRoot = p.join(packageRoot, 'lib');
   final rel = p.relative(absoluteLibPath, from: libRoot);
   if (rel.startsWith('..')) {
-    throw StateError('Файл должен находиться внутри $libRoot, получено: $absoluteLibPath');
+    throw StateError('File must be under $libRoot, got: $absoluteLibPath');
   }
   final dir = p.dirname(rel);
   final base = p.basenameWithoutExtension(rel);
@@ -381,7 +390,7 @@ Future<CheckFailure?> generateSingleLibraryFile({
   );
   if (parsed == null) {
     emit(progress: 100);
-    v('skip', 'нет класса с поддерживаемыми методами');
+    v('skip', 'no class with supportable methods');
     return null;
   }
   emit(progress: 14);
@@ -424,7 +433,7 @@ Future<CheckFailure?> generateSingleLibraryFile({
   v('snapshot', 'decode OK');
 
   if (snapshots.length != parsed.methods.length) {
-    throw StateError('несогласованность снимков и методов');
+    throw StateError('snapshot count does not match parsed methods');
   }
 
   final methods = <MethodSpec>[];
@@ -432,7 +441,7 @@ Future<CheckFailure?> generateSingleLibraryFile({
     final m = parsed.methods[i];
     final snap = snapshots[i];
     if (snap.methodName != m.name) {
-      throw StateError('несогласованность имён методов');
+      throw StateError('snapshot method name does not match parsed method');
     }
     final rows = <TestCaseRow>[];
     for (final r in snap.rows) {
@@ -448,7 +457,7 @@ Future<CheckFailure?> generateSingleLibraryFile({
       } else {
         final lit = r.expectedDartLiteral;
         if (lit == null) {
-          throw StateError('ожидался expectedDartLiteral для ${m.name}');
+          throw StateError('Missing expectedDartLiteral for ${m.name}');
         }
         rows.add(TestCaseRow(argLiterals: r.argLiterals, expectedLiteral: lit));
       }
@@ -470,6 +479,7 @@ Future<CheckFailure?> generateSingleLibraryFile({
         kind: m.kind,
         useCloseForDouble: methodConfig.useCloseForDouble,
         doubleEpsilon: methodConfig.doubleEpsilon,
+        useExpectMatchersBoolNull: methodConfig.useExpectMatchersBoolNull,
         testCases: sampledRows,
       ),
     );
@@ -481,8 +491,7 @@ Future<CheckFailure?> generateSingleLibraryFile({
   v('render', importPath);
 
   final receiverInfo = parsed.allFileClasses.where((c) => c.name == parsed.className).firstOrNull;
-  final receiverInstantiation =
-      receiverInfo != null ? instantiationExpressionForClass(receiverInfo) : null;
+  final receiverInstantiation = receiverInfo != null ? instantiationExpressionForClass(receiverInfo) : null;
 
   final content = generateTestFile(
     className: parsed.className,
@@ -537,15 +546,15 @@ Future<void> generateFromCli(List<String> args) async {
   var targets = expandGenerationTargets(cwd, parsedArgs.inputs);
 
   if (targets.isEmpty) {
-    CliLog.err('Не найдено ни одного .dart файла.');
+    CliLog.err('No .dart files found.');
     exit(1);
   }
 
   final packageRoots = targets.map(findPackageRootForFile).toSet();
   if (packageRoots.length != 1) {
     CliLog.err(
-      'Все пути должны относиться к одному пакету (один pubspec рядом).\n'
-      'Найдено корней: ${packageRoots.join(", ")}',
+      'All paths must belong to the same package (one pubspec).\n'
+      'Found package roots: ${packageRoots.join(", ")}',
     );
     exit(1);
   }
@@ -555,16 +564,16 @@ Future<void> generateFromCli(List<String> args) async {
   targets = targets.where((t) => _isDartUnderLib(t, packageRoot)).toList();
   if (targets.isEmpty) {
     CliLog.err(
-      'После фильтрации не осталось файлов в $packageRoot${p.separator}lib '
-      '(было кандидатов: $before).',
+      'After filtering, no files remain under $packageRoot${p.separator}lib '
+      '(candidates before filter: $before).',
     );
     exit(1);
   }
 
   if (parsedArgs.className != null && targets.length != 1) {
     CliLog.err(
-      '--class задаёт один класс: укажите ровно один .dart под lib или одну цель без лишних файлов.\n'
-      'Сейчас целей после фильтра: ${targets.length}.',
+      '--class selects one class: pass exactly one .dart under lib or a single target.\n'
+      'Targets after filter: ${targets.length}.',
     );
     exit(64);
   }
@@ -584,6 +593,7 @@ Future<void> generateFromCli(List<String> args) async {
       parsedArgs.seed != null ||
       parsedArgs.useCloseForDouble != null ||
       parsedArgs.doubleEpsilon != null ||
+      parsedArgs.useExpectMatchersBoolNull != null ||
       parsedArgs.keepRunner != null ||
       parsedArgs.dryRun != null ||
       parsedArgs.check != null) {
@@ -594,6 +604,7 @@ Future<void> generateFromCli(List<String> args) async {
         seed: parsedArgs.seed,
         useCloseForDouble: parsedArgs.useCloseForDouble,
         doubleEpsilon: parsedArgs.doubleEpsilon,
+        useExpectMatchersBoolNull: parsedArgs.useExpectMatchersBoolNull,
       ),
       methods: config.methods,
       keepRunner: parsedArgs.keepRunner ?? config.keepRunner,
@@ -629,7 +640,7 @@ Future<void> generateFromCli(List<String> args) async {
       exit(1);
     } catch (e, st) {
       ui.finish();
-      CliLog.err('Ошибка: $e\n$st');
+      CliLog.err('Error: $e\n$st');
       exit(1);
     }
     ui.finish();
@@ -689,11 +700,11 @@ Future<void> generateFromCli(List<String> args) async {
         if (!doneSent) {
           doneSent = true;
           if (!sawResult) {
-            done.completeError(StateError('изолят без результата: $libAbs'));
+            done.completeError(StateError('isolate finished without result: $libAbs'));
           } else if (success) {
             done.complete();
           } else {
-            done.completeError(StateError('сбой генерации: $libAbs'));
+            done.completeError(StateError('generation failed: $libAbs'));
           }
         }
         return;
@@ -730,7 +741,7 @@ Future<void> generateFromCli(List<String> args) async {
       await f;
     } catch (e, st) {
       aggregateError ??= e;
-      CliLog.err('Пакет: $e\n$st');
+      CliLog.err('Error: $e\n$st');
     }
   }
 

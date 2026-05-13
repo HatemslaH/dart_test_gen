@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/static_factory_extension_showcase/static_factory_extension_showcase.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-11T21:35:02.834330
+// Generated: 2026-05-13T16:44:45.084736
 
 void main() {
   final user = User('', 0);
@@ -353,15 +353,13 @@ void main() {
   group('operator ==', () {
     test('operator ==(0)', () {
       final other = 0;
-      final expected = false;
       final actual = user == other;
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('operator ==(\'str\')', () {
       final other = 'str';
-      final expected = false;
       final actual = user == other;
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
   });
 

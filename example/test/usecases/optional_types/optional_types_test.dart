@@ -5,7 +5,7 @@ import 'package:example/usecases/optional_types/custom_item.dart';
 import 'package:example/usecases/optional_types/item_status.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-11T21:35:03.120455
+// Generated: 2026-05-13T16:44:45.398528
 
 void main() {
   final optionaltypes = OptionalTypes();
@@ -2333,21 +2333,18 @@ void main() {
   group('findId', () {
     test('findId(\'\')', () {
       final name = '';
-      final expected = null;
       final actual = optionaltypes.findId(name);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
     test('findId(\'hello\')', () {
       final name = 'hello';
-      final expected = null;
       final actual = optionaltypes.findId(name);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
     test('findId(\'  \')', () {
       final name = '  ';
-      final expected = null;
       final actual = optionaltypes.findId(name);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
     test('findId(\'admin\')', () {
       final name = 'admin';
@@ -2366,9 +2363,8 @@ void main() {
   group('findItem', () {
     test('findItem(0)', () {
       final id = 0;
-      final expected = null;
       final actual = optionaltypes.findItem(id);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
     test('findItem(1)', () {
       final id = 1;
@@ -2378,33 +2374,28 @@ void main() {
     });
     test('findItem(-1)', () {
       final id = -1;
-      final expected = null;
       final actual = optionaltypes.findItem(id);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
     test('findItem(2)', () {
       final id = 2;
-      final expected = null;
       final actual = optionaltypes.findItem(id);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
     test('findItem(-2)', () {
       final id = -2;
-      final expected = null;
       final actual = optionaltypes.findItem(id);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
     test('findItem(10)', () {
       final id = 10;
-      final expected = null;
       final actual = optionaltypes.findItem(id);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
     test('findItem(-10)', () {
       final id = -10;
-      final expected = null;
       final actual = optionaltypes.findItem(id);
-      expect(actual, expected);
+      expect(actual, isNull);
     });
   });
 

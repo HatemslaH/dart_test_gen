@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/data_toolbox/rgb_color.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-11T21:35:02.812710
+// Generated: 2026-05-13T16:44:45.165499
 
 void main() {
   final rgbcolor = RgbColor(0, 0, 0);
@@ -10,15 +10,13 @@ void main() {
   group('operator ==', () {
     test('operator ==(0)', () {
       final other = 0;
-      final expected = false;
       final actual = rgbcolor == other;
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('operator ==(\'str\')', () {
       final other = 'str';
-      final expected = false;
       final actual = rgbcolor == other;
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
   });
 

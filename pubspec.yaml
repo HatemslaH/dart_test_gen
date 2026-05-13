@@ -1,6 +1,6 @@
 name: dart_test_gen
-description: Автогенератор юнит-тестов для Dart
-version: 1.0.0
+description: Automated unit test generator for Dart
+version: 0.1.0
 
 executables:
   dart_test_gen:

@@ -48,12 +48,16 @@ class MethodConfig {
   /// Absolute epsilon for `closeTo` (only used when [useCloseForDouble] is true).
   final double doubleEpsilon;
 
+  /// When true, bool/null snapshot literals emit `isTrue` / `isFalse` / `isNull` instead of `expected` locals.
+  final bool useExpectMatchersBoolNull;
+
   const MethodConfig({
     this.strategy = SamplingStrategy.full,
     this.maxCases = 200,
     this.seed,
     this.useCloseForDouble = false,
     this.doubleEpsilon = 1e-9,
+    this.useExpectMatchersBoolNull = true,
   });
 
   factory MethodConfig.fromYaml(YamlMap? yaml, MethodConfig defaults) {
@@ -67,6 +71,10 @@ class MethodConfig {
         ? (yamlScalarToPositiveDouble(yaml['double_epsilon']) ?? defaults.doubleEpsilon)
         : defaults.doubleEpsilon;
 
+    final useMatchers = yaml.containsKey('use_expect_matchers_bool_null')
+        ? (yaml['use_expect_matchers_bool_null'] as bool? ?? defaults.useExpectMatchersBoolNull)
+        : defaults.useExpectMatchersBoolNull;
+
     return MethodConfig(
       strategy:
           yaml.containsKey('strategy') ? SamplingStrategy.fromString(yaml['strategy'] as String?) : defaults.strategy,
@@ -74,6 +82,7 @@ class MethodConfig {
       seed: yaml['seed'] as int? ?? defaults.seed,
       useCloseForDouble: useClose,
       doubleEpsilon: epsFromYaml,
+      useExpectMatchersBoolNull: useMatchers,
     );
   }
 
@@ -83,6 +92,7 @@ class MethodConfig {
     int? seed,
     bool? useCloseForDouble,
     double? doubleEpsilon,
+    bool? useExpectMatchersBoolNull,
   }) {
     return MethodConfig(
       strategy: strategy ?? this.strategy,
@@ -90,6 +100,7 @@ class MethodConfig {
       seed: seed ?? this.seed,
       useCloseForDouble: useCloseForDouble ?? this.useCloseForDouble,
       doubleEpsilon: doubleEpsilon ?? this.doubleEpsilon,
+      useExpectMatchersBoolNull: useExpectMatchersBoolNull ?? this.useExpectMatchersBoolNull,
     );
   }
 }

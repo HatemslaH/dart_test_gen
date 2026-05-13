@@ -4,7 +4,7 @@ import 'package:example/usecases/async_showcase/priority.dart';
 import 'package:example/usecases/async_showcase/task_result.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-11T21:35:02.939651
+// Generated: 2026-05-13T16:44:45.118422
 
 void main() {
   final asyncshowcase = AsyncShowcase();
@@ -211,27 +211,23 @@ void main() {
   group('isHighPriority', () {
     test('isHighPriority(Priority.low)', () async {
       final priority = Priority.low;
-      final expected = false;
       final actual = await asyncshowcase.isHighPriority(priority);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isHighPriority(Priority.normal)', () async {
       final priority = Priority.normal;
-      final expected = false;
       final actual = await asyncshowcase.isHighPriority(priority);
-      expect(actual, expected);
+      expect(actual, isFalse);
     });
     test('isHighPriority(Priority.high)', () async {
       final priority = Priority.high;
-      final expected = true;
       final actual = await asyncshowcase.isHighPriority(priority);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
     test('isHighPriority(Priority.critical)', () async {
       final priority = Priority.critical;
-      final expected = true;
       final actual = await asyncshowcase.isHighPriority(priority);
-      expect(actual, expected);
+      expect(actual, isTrue);
     });
   });
 

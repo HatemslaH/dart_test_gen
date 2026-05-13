@@ -13,6 +13,7 @@ void main() {
         '--seed', '7',
         '--use-close-for-double',
         '--double-epsilon', '1e-6',
+        '--expect-matchers-bool-null',
         '--config', 'cfg.yaml',
         '--keep-runner',
       ]);
@@ -24,6 +25,7 @@ void main() {
       expect(result.seed, 7);
       expect(result.useCloseForDouble, isTrue);
       expect(result.doubleEpsilon, closeTo(1e-6, 1e-18));
+      expect(result.useExpectMatchersBoolNull, isTrue);
       expect(result.configPath, 'cfg.yaml');
       expect(result.keepRunner, isTrue);
     });
@@ -45,8 +47,31 @@ void main() {
       expect(result.seed, isNull);
       expect(result.useCloseForDouble, isNull);
       expect(result.doubleEpsilon, isNull);
+      expect(result.useExpectMatchersBoolNull, isNull);
       expect(result.configPath, isNull);
       expect(result.keepRunner, isNull);
+    });
+  });
+
+  group('parseCliArgs — expect matcher flags', () {
+    test('--no-expect-matchers-bool-null sets false', () {
+      final r = parseCliArgs(['lib/x.dart', '--no-expect-matchers-bool-null']);
+      expect(r.useExpectMatchersBoolNull, isFalse);
+    });
+
+    test('last flag wins when both are present', () {
+      final offLast = parseCliArgs([
+        'lib/x.dart',
+        '--expect-matchers-bool-null',
+        '--no-expect-matchers-bool-null',
+      ]);
+      expect(offLast.useExpectMatchersBoolNull, isFalse);
+      final onLast = parseCliArgs([
+        'lib/x.dart',
+        '--no-expect-matchers-bool-null',
+        '--expect-matchers-bool-null',
+      ]);
+      expect(onLast.useExpectMatchersBoolNull, isTrue);
     });
   });
 

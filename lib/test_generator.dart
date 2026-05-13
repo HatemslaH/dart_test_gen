@@ -79,6 +79,9 @@ class MethodSpec {
   /// Absolute epsilon for generated `closeTo` when [useCloseForDouble] is true.
   final double doubleEpsilon;
 
+  /// From config: when true, bool/null literals use `isTrue` / `isFalse` / `isNull`.
+  final bool useExpectMatchersBoolNull;
+
   final List<TestCaseRow> testCases;
 
   const MethodSpec({
@@ -93,6 +96,7 @@ class MethodSpec {
     this.kind = MethodKind.method,
     this.useCloseForDouble = false,
     this.doubleEpsilon = 1e-9,
+    this.useExpectMatchersBoolNull = true,
     required this.testCases,
   });
 }
@@ -310,6 +314,19 @@ String _renderHashCodePairEqualityTest(String className, MethodSpec spec, String
     });''';
 }
 
+/// Second argument to `expect(actual, …)` for bool/null literals, or null for `expected` binding.
+String? _successExpectMatcherSecondArg(MethodSpec spec, String expectedLiteral) {
+  if (!spec.useExpectMatchersBoolNull) return null;
+  final trimmed = expectedLiteral.trim();
+  if (trimmed == 'null') return 'isNull';
+  final rt = spec.snapshotReturnType.trim();
+  if (rt == 'bool' || rt == 'bool?') {
+    if (trimmed == 'true') return 'isTrue';
+    if (trimmed == 'false') return 'isFalse';
+  }
+  return null;
+}
+
 String _renderSuccessTest(String className, MethodSpec spec, TestCaseRow row) {
   final label = _argLabel(spec.params, row.argLiterals);
   final inputs = _inputDeclarations(spec.params, row.argLiterals);
@@ -346,16 +363,20 @@ $inputs
   }
 
   final useClose = spec.useCloseForDouble && spec.snapshotReturnType == 'double';
-  final expectLine =
-      useClose ? 'expect(actual, closeTo(expected, ${_doubleLiteralForGenerated(spec.doubleEpsilon)}));'
+  final matcherSecond = useClose ? null : _successExpectMatcherSecondArg(spec, expected);
+  final expectLine = useClose
+      ? 'expect(actual, closeTo(expected, ${_doubleLiteralForGenerated(spec.doubleEpsilon)}));'
+      : matcherSecond != null
+      ? 'expect(actual, $matcherSecond);'
       : 'expect(actual, expected);';
+
+  final expectedDecl = (useClose || matcherSecond == null) ? '      final expected = $expected;\n' : '';
 
   if (async) {
     return '''
     test('$titleOk', () async {
 $inputs
-      final expected = $expected;
-      final actual = $awaitedCall;
+${expectedDecl}      final actual = $awaitedCall;
       $expectLine
     });''';
   }
@@ -363,8 +384,7 @@ $inputs
   return '''
     test('$titleOk', () {
 $inputs
-      final expected = $expected;
-      final actual = $syncCall;
+${expectedDecl}      final actual = $syncCall;
       $expectLine
     });''';
 }

@@ -26,6 +26,15 @@ double_epsilon: -1
       expect(c.doubleEpsilon, 1e-9);
     });
 
+    test('parses use_expect_matchers_bool_null at root', () {
+      final yaml = loadYaml('''
+use_expect_matchers_bool_null: false
+''') as YamlMap;
+
+      final c = MethodConfig.fromYaml(yaml, const MethodConfig());
+      expect(c.useExpectMatchersBoolNull, false);
+    });
+
     test('per-method overrides inherit then replace', () {
       final yaml = loadYaml('''
 use_close_for_double: true
@@ -45,6 +54,26 @@ methods:
 
       expect(cfg.forMethod('sumTenths').useCloseForDouble, true);
       expect(cfg.forMethod('asyncSum').useCloseForDouble, false);
+    });
+
+    test('per-method use_expect_matchers_bool_null overrides root', () {
+      final yaml = loadYaml('''
+use_expect_matchers_bool_null: true
+methods:
+  foo:
+    use_expect_matchers_bool_null: false
+''') as YamlMap;
+
+      final defaults = MethodConfig.fromYaml(yaml, const MethodConfig());
+      final methodsYaml = yaml['methods'] as YamlMap;
+      final methods = <String, MethodConfig>{
+        for (final e in methodsYaml.entries)
+          e.key as String: MethodConfig.fromYaml(e.value as YamlMap?, defaults),
+      };
+      final cfg = GeneratorConfig(defaults: defaults, methods: methods);
+
+      expect(cfg.forMethod('bar').useExpectMatchersBoolNull, true);
+      expect(cfg.forMethod('foo').useExpectMatchersBoolNull, false);
     });
   });
 

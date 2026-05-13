@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/exception_throws_showcase.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-11T21:35:02.839450
+// Generated: 2026-05-13T16:44:45.079721
 
 void main() {
   final exceptionthrowsshowcase = ExceptionThrowsShowcase();
