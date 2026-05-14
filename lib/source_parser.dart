@@ -4,6 +4,8 @@ import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:dart_test_gen/src/application/dynamic_input_generator.dart';
+import 'package:dart_test_gen/src/application/method_logic_analyzer.dart';
 import 'package:path/path.dart' as p;
 
 import 'test_generator.dart';
@@ -163,101 +165,6 @@ List<ClassInfo> _collectAllClasses(CompilationUnit unit) {
     }
   }
   return out;
-}
-
-List<String> _extractLiteralsFromNode(AstNode? node, String paramName) {
-  if (node == null) return const [];
-  final literals = <String>{};
-  node.visitChildren(_LiteralVisitor(paramName, literals));
-  return literals.toList();
-}
-
-Expression _unwrapParens(Expression e) {
-  var x = e;
-  while (x is ParenthesizedExpression) {
-    x = x.expression;
-  }
-  return x;
-}
-
-/// Integer from a literal `42` or unary `-42`.
-int? _intFromLiteralExpression(Expression e) {
-  final u = _unwrapParens(e);
-  if (u is IntegerLiteral) return u.value;
-  if (u is PrefixExpression && u.operator.lexeme == '-') {
-    final inner = _unwrapParens(u.operand);
-    if (inner is IntegerLiteral) {
-      final v = inner.value;
-      if (v != null) return -v;
-    }
-  }
-  return null;
-}
-
-class _LiteralVisitor extends RecursiveAstVisitor<void> {
-  final String paramName;
-  final Set<String> literals;
-
-  _LiteralVisitor(this.paramName, this.literals);
-
-  void _addIntBoundaryTriplet(int pivot) {
-    literals.add('$pivot');
-    literals.add('${pivot - 1}');
-    literals.add('${pivot + 1}');
-  }
-
-  void _visitComparison(BinaryExpression node) {
-    final op = node.operator.lexeme;
-    if (op != '<' && op != '<=' && op != '>' && op != '>=') return;
-
-    final left = _unwrapParens(node.leftOperand);
-    final right = _unwrapParens(node.rightOperand);
-
-    if (left is SimpleIdentifier && left.name == paramName) {
-      final v = _intFromLiteralExpression(right);
-      if (v != null) _addIntBoundaryTriplet(v);
-      return;
-    }
-    if (right is SimpleIdentifier && right.name == paramName) {
-      final v = _intFromLiteralExpression(left);
-      if (v != null) _addIntBoundaryTriplet(v);
-    }
-  }
-
-  @override
-  void visitBinaryExpression(BinaryExpression node) {
-    if (node.operator.lexeme == '==' || node.operator.lexeme == '!=') {
-      _check(node.leftOperand, node.rightOperand);
-      _check(node.rightOperand, node.leftOperand);
-    } else {
-      _visitComparison(node);
-    }
-    super.visitBinaryExpression(node);
-  }
-
-  @override
-  void visitSwitchCase(SwitchCase node) {
-    // switch(paramName)
-    final parent = node.parent;
-    if (parent is SwitchStatement) {
-      final target = parent.expression;
-      if (target is SimpleIdentifier && target.name == paramName) {
-        final expr = node.expression;
-        if (expr is Literal) {
-          literals.add(expr.toSource());
-        }
-      }
-    }
-    super.visitSwitchCase(node);
-  }
-
-  void _check(Expression a, Expression b) {
-    if (a is SimpleIdentifier && a.name == paramName) {
-      if (b is Literal) {
-        literals.add(b.toSource());
-      }
-    }
-  }
 }
 
 String _sampleLiteralForConstructorField(String typeSource, int diagonalIdx) {
@@ -526,6 +433,18 @@ List<Param> _paramsFromFormalList(
   AstNode? node,
 ) {
   if (list == null) return const [];
+
+  final paramNames = <String>[];
+  for (final fp in list.parameters) {
+    final resolved = fp is DefaultFormalParameter ? fp.parameter : fp;
+    if (resolved is SimpleFormalParameter && resolved.name != null) {
+      paramNames.add(resolved.name!.lexeme);
+    }
+  }
+
+  final body = node is MethodDeclaration ? node.body : (node is ConstructorDeclaration ? node.body : null);
+  final profile = const MethodLogicAnalyzer().analyze(body, paramNames);
+
   final out = <Param>[];
   for (final fp in list.parameters) {
     final isNamed = fp.isNamed;
@@ -553,7 +472,20 @@ List<Param> _paramsFromFormalList(
         isNullable = type.question != null;
       }
 
-      final extraLiterals = _extractLiteralsFromNode(node, paramName.lexeme);
+      final initialParam = _paramFor(
+        paramName.lexeme,
+        resolved.type,
+        enumLiterals,
+        allFileClasses,
+        isNullable: isNullable,
+        isNamed: isNamed,
+        isOptionalPositional: isOptionalPositional,
+        defaultValueCode: defaultValueCode,
+      );
+
+      // Generate dynamic inputs and merge with Param.literalValues
+      final dynamicInputs = const DynamicInputGenerator().generate(profile, [initialParam]);
+      final extraLiterals = dynamicInputs[paramName.lexeme];
 
       out.add(_paramFor(
         paramName.lexeme,
@@ -564,7 +496,7 @@ List<Param> _paramsFromFormalList(
         isNamed: isNamed,
         isOptionalPositional: isOptionalPositional,
         defaultValueCode: defaultValueCode,
-        extraLiterals: extraLiterals,
+        extraLiterals: extraLiterals?.toList(),
       ));
     } else {
       return const [];

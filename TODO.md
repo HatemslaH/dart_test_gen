@@ -4,6 +4,32 @@ This file lists **problems and gaps** as the author sees them today. It intentio
 
 ---
 
+## Prioritized TODO list
+
+Higher items are **more urgent** from the product direction described below.
+
+| Priority | Task | Problem (short) |
+|:--------:|------|-----------------|
+| **P1** | **Method-body analysis for tests** | Generation does not infer what to assert or which inputs matter from **actual method logic** (callees, branches, constants). |
+| **P1** | **Logic-derived test layer (Level 1)** | No dedicated pipeline stage that turns **control flow and API usage** into targeted cases (state, order, cross-call behavior). |
+| **P2** | **Domain-aware boundary tests (Level 2)** | Boundaries are mostly a **global literal catalog**, not limits implied by the method (lengths, signs, empty vs non-empty, etc.). |
+| **P2** | **Sample / ordinary-value tests (Level 3)** | No clear layer for **representative and compound** inputs beyond the fixed grid. |
+| **P2** | **`StressShowcase` as acceptance bar** | Realistic class still shows **systematic blind spots** (strings, lists, recurrence, Unicode, getters); generator is “not good enough” there. |
+| **P3** | **Shared instance across test groups** | One fixture couples **mutable state**, **execution order**, and **getter expectations**; suites are fragile when cases or order change. |
+| **P3** | **Define near-term scope explicitly** | “What I want now” is still **incomplete**; short-term deliverables are not written down as a checklist. |
+
+### Checklist (same order)
+
+- [x] **P1** — Method-body analysis: close the gap between “what the code does” and “what gets generated.”
+- [ ] **P1** — Level 1 logic-derived tests: stateful, multi-step, and callee-driven behaviors not covered by one-shot snapshots.
+- [ ] **P2** — Level 2 boundaries tied to each method’s domain, not only per-type defaults.
+- [ ] **P2** — Level 3 sampling: ordinary and compound inputs for diversity beyond the grid.
+- [ ] **P2** — Treat `StressShowcase` (or equivalent) as a standing **quality / regression** target for generation.
+- [ ] **P3** — Address fragility from **single shared receiver** and order-dependent assertions.
+- [ ] **P3** — Finish the **immediate scope** list when priorities stabilize.
+
+---
+
 ## Vision and motivation
 
 The goal is a **high-quality Dart test generator** that auto-generates tests and genuinely makes day-to-day work easier. Today the generator is judged **not good enough** on realistic code such as `StressShowcase`: generated suites miss important behaviors that a human would catch from reading the implementation or comments.
@@ -58,15 +84,3 @@ The following levels describe **desired richness** of generated tests. The gener
 ## Problem: single shared fixture across groups
 
 **Description:** One receiver instance for the whole file ties **order of execution**, **mutable state** (`callCount`, caches, histories), and **getter expectations** together. That makes some tests **integration-like** and **fragile** relative to reordering or adding cases.
-
----
-
-## Problem: analysis quality is the first priority for the author
-
-**Description:** The immediate direction is to **improve analysis** of what each method does so generated tests can reflect that information. Until analysis improves, expanding boundary lists or samples alone will not address “the method clearly does X but no test checks X.”
-
----
-
-## Problem: “What I want now” is incomplete in the original note
-
-**Description:** The working note ended at immediate next steps without a fully enumerated checklist. This entry marks that **short-term scope** still needs to be captured elsewhere when it is ready—again as problems or goals, not as designs here.

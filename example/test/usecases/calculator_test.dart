@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/calculator.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T17:57:11.180990
+// Generated: 2026-05-14T16:02:43.859983
 
 void main() {
   final calculator = Calculator();
@@ -3118,6 +3118,11 @@ void main() {
       final actual = calculator.isEven(a);
       expect(actual, isTrue);
     });
+    test('isEven(3) returns false', () {
+      final a = 3;
+      final actual = calculator.isEven(a);
+      expect(actual, isFalse);
+    });
   });
 
   group('isOdd', () {
@@ -3155,6 +3160,11 @@ void main() {
       final a = -10;
       final actual = calculator.isOdd(a);
       expect(actual, isFalse);
+    });
+    test('isOdd(3) returns true', () {
+      final a = 3;
+      final actual = calculator.isOdd(a);
+      expect(actual, isTrue);
     });
   });
 

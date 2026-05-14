@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/stress_showcase.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T17:57:10.976496
+// Generated: 2026-05-14T16:02:43.843238
 
 void main() {
   final stressshowcase = StressShowcase();
@@ -372,6 +372,60 @@ void main() {
       final actual = stressshowcase.normalize(input);
       expect(actual, expected);
     });
+    test('normalize(\'old\') returns \'old\'', () {
+      final input = 'old';
+      final expected = 'old';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
+    test('normalize(\'new\') returns \'new\'', () {
+      final input = 'new';
+      final expected = 'new';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
+    test('normalize(\'MIXED_case\') returns \'mixed_case\'', () {
+      final input = 'MIXED_case';
+      final expected = 'mixed_case';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
+    test('normalize(\'UPPERCASE\') returns \'uppercase\'', () {
+      final input = 'UPPERCASE';
+      final expected = 'uppercase';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
+    test('normalize(\'lowercase\') returns \'lowercase\'', () {
+      final input = 'lowercase';
+      final expected = 'lowercase';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
+    test('normalize(\'  leading\') returns \'leading\'', () {
+      final input = '  leading';
+      final expected = 'leading';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
+    test('normalize(\'trailing  \') returns \'trailing\'', () {
+      final input = 'trailing  ';
+      final expected = 'trailing';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
+    test('normalize(\'  both  \') returns \'both\'', () {
+      final input = '  both  ';
+      final expected = 'both';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
+    test('normalize(\'\\t tab \\n\') returns \'tab\'', () {
+      final input = '\t tab \n';
+      final expected = 'tab';
+      final actual = stressshowcase.normalize(input);
+      expect(actual, expected);
+    });
   });
 
   group('processInts', () {
@@ -432,6 +486,18 @@ void main() {
       final actual = stressshowcase.tribonacci(n);
       expect(actual, expected);
     });
+    test('tribonacci(3) returns 2', () {
+      final n = 3;
+      final expected = 2;
+      final actual = stressshowcase.tribonacci(n);
+      expect(actual, expected);
+    });
+    test('tribonacci(4) returns 4', () {
+      final n = 4;
+      final expected = 4;
+      final actual = stressshowcase.tribonacci(n);
+      expect(actual, expected);
+    });
   });
 
   group('runLengthEncode', () {
@@ -456,9 +522,9 @@ void main() {
   });
 
   group('getter callCount', () {
-    test('getter callCount returns 3', () {
+    test('getter callCount returns 12', () {
 
-      final expected = 3;
+      final expected = 12;
       final actual = stressshowcase.callCount;
       expect(actual, expected);
     });

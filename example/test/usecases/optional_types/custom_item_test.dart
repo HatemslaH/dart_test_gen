@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/optional_types/custom_item.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T17:57:10.784148
+// Generated: 2026-05-14T16:02:43.503678
 
 void main() {
   final customitem = CustomItem(id: 0, name: '');

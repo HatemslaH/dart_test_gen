@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/type_extensions_showcase/counter_label.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-13T17:57:10.761470
+// Generated: 2026-05-14T16:02:43.230341
 
 void main() {
   final counterlabel = CounterLabel(0, '');
