@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import '../ports/generation_filesystem.dart';
+import 'package:dart_test_gen/src/ports/generation_filesystem.dart';
 
 /// Default [GenerationFilesystem] using `dart:io`.
 final class IoGenerationFilesystem implements GenerationFilesystem {

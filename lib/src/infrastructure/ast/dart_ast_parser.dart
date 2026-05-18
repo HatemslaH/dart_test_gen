@@ -1,14 +1,8 @@
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:dart_test_gen/test_generator.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
-
-import '../../domain/models/enums.dart';
-import '../../domain/models/parsed_models.dart';
-import '../../domain/models/test_models.dart';
-import '../../domain/services/dynamic_input_generator.dart';
-import 'method_logic_analyzer.dart';
 
 /// Collects `EnumName.variant` literals for every public enum in the file.
 Map<String, List<String>> collectEnumLiterals(CompilationUnit unit) {

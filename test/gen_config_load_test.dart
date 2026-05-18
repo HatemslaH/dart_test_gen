@@ -1,9 +1,8 @@
 import 'dart:io';
 
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
-import 'package:dart_test_gen/gen_config.dart';
-import 'package:dart_test_gen/src/infrastructure/config/config_loader.dart';
 
 void main() {
   late Directory tempDir;

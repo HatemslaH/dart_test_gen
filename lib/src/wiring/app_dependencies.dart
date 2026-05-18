@@ -1,9 +1,4 @@
-import '../application/snapshot_unit_test_generation.dart';
-import '../domain/generator_module.dart';
-import '../domain/ports/config_reader.dart';
-import '../infrastructure/config/config_loader.dart';
-import '../infrastructure/io_generation_filesystem.dart';
-import '../ports/generation_filesystem.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// Composition root: default filesystem and registered generator modules.
 final class AppDependencies {

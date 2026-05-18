@@ -1,30 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
-
-import 'src/domain/models/snapshot_models.dart';
-import 'src/domain/models/snapshot_run_context.dart';
-import 'src/infrastructure/codegen/snapshot_runner_generator.dart';
-import 'src/infrastructure/serialization/json_decoder.dart';
-
-export 'src/domain/models/parsed_models.dart' show ClassInfo, ParsedClass, ParsedMethod, instantiationExpressionForClass;
-export 'src/domain/models/snapshot_models.dart';
-export 'src/domain/models/snapshot_run_context.dart';
-export 'src/domain/ports/process_runner.dart';
-export 'src/infrastructure/codegen/snapshot_runner_generator.dart'
-    show formatArgsForSnapshot, snapshotInvokeExpression, writeSnapshotRunnerImports;
-export 'src/infrastructure/serialization/json_decoder.dart' show dartLiteralFromJson, dartLiteralFromJsonLoose, mergeDecodedSnapshots;
-
-String _tailLines(String text, int maxLines) {
-  final lines = const LineSplitter().convert(text);
-  if (lines.length <= maxLines) return text;
-  return lines.sublist(lines.length - maxLines).join('\n');
-}
-
-void _snapshotVerbose(void Function(String line)? sink, String label, String step, String detail) {
-  sink?.call('[$label]\tsnapshot/$step\t$detail\n');
-}
 
 /// Generates the runner source, executes it, and returns snapshots per method.
 ///
@@ -44,7 +22,7 @@ List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
   final keepRunner = ctx.keepRunner;
   final processRunner = ctx.processRunner;
 
-  void sl(String step, String detail) => _snapshotVerbose(onVerboseLine, logLabel, step, detail);
+  void sl(String step, String detail) => snapshotVerboseLine(onVerboseLine, logLabel, step, detail);
 
   void frac(double v) => onSnapshotFraction?.call(v.clamp(0.0, 1.0));
 
@@ -94,7 +72,7 @@ List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
         absoluteLibPath: absoluteLibPath,
         className: parsed.className,
         runnerPath: runnerPath,
-        dartStderrTail: _tailLines(se.isNotEmpty ? se : so, 40),
+        dartStderrTail: tailLinesForLog(se.isNotEmpty ? se : so, 40),
         exitCode: result.exitCode,
       );
     }
@@ -111,7 +89,7 @@ List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
         absoluteLibPath: absoluteLibPath,
         className: parsed.className,
         runnerPath: runnerPath,
-        dartStderrTail: _tailLines(
+        dartStderrTail: tailLinesForLog(
           'jsonDecode failed: $e\nstdout (head):\n${raw.length > 4000 ? raw.substring(0, 4000) : raw}',
           40,
         ),
@@ -124,7 +102,7 @@ List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
         absoluteLibPath: absoluteLibPath,
         className: parsed.className,
         runnerPath: runnerPath,
-        dartStderrTail: _tailLines('expected JSON array, got: $decoded', 40),
+        dartStderrTail: tailLinesForLog('expected JSON array, got: $decoded', 40),
       );
     }
     frac(1.0);

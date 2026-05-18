@@ -1,5 +1,4 @@
-import 'package:dart_test_gen/generate_pipeline.dart';
-import 'package:dart_test_gen/src/cli/early_exit_handler.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 Future<void> main(List<String> args) async {
   if (handleEarlyExitFlags(args)) return;

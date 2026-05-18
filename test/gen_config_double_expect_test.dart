@@ -1,4 +1,4 @@
-import 'package:dart_test_gen/gen_config.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 

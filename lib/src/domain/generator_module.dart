@@ -1,7 +1,4 @@
-import 'package:dart_test_gen/gen_config.dart';
-
-import '../ports/generation_filesystem.dart';
-import 'check_failure.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// UI callback: progress 0–100 and a detail line; [error]==true always goes to stderr.
 typedef EmitGenerationUi = void Function({double? progress, String? line, bool? error});

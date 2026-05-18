@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import '../../domain/ports/process_runner.dart';
+import 'package:dart_test_gen/src/domain/ports/process_runner.dart';
 
 /// [ProcessRunner] backed by [Process.runSync].
 final class IoProcessRunner implements ProcessRunner {

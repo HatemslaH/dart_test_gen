@@ -1,7 +1,6 @@
 import 'dart:io';
 
-import '../infrastructure/version_resolver.dart';
-import 'help.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// Returns `true` if an early-exit flag was handled (caller should return).
 bool handleEarlyExitFlags(List<String> args) {

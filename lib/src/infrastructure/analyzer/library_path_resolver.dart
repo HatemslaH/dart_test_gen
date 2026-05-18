@@ -2,7 +2,7 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/file_system/physical_file_system.dart';
-import 'package:dart_test_gen/source_parser.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
 
 /// Collects URIs of libraries referenced by types in method signatures (return types and parameters).

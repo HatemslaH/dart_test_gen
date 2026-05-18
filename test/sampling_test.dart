@@ -1,7 +1,5 @@
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:test/test.dart';
-import 'package:dart_test_gen/gen_config.dart';
-import 'package:dart_test_gen/sampling.dart';
-import 'package:dart_test_gen/test_generator.dart';
 
 TestCaseRow _opt(String label) => TestCaseRow(argLiterals: [label]);
 TestCaseRow _mandatory(String label) => TestCaseRow(argLiterals: [label], throwsType: 'Exception');
@@ -77,18 +75,10 @@ void main() {
       final cfg = const MethodConfig(strategy: SamplingStrategy.full, maxCases: 200);
       final result = sampleTestCases(rows, cfg);
       // mandatory rows come before optional rows
-      final mandatoryIndices = result
-          .asMap()
-          .entries
-          .where((e) => e.value.throwsType != null)
-          .map((e) => e.key)
-          .toList();
-      final optionalIndices = result
-          .asMap()
-          .entries
-          .where((e) => e.value.throwsType == null)
-          .map((e) => e.key)
-          .toList();
+      final mandatoryIndices =
+          result.asMap().entries.where((e) => e.value.throwsType != null).map((e) => e.key).toList();
+      final optionalIndices =
+          result.asMap().entries.where((e) => e.value.throwsType == null).map((e) => e.key).toList();
       if (mandatoryIndices.isNotEmpty && optionalIndices.isNotEmpty) {
         expect(mandatoryIndices.last < optionalIndices.first, isTrue);
       }

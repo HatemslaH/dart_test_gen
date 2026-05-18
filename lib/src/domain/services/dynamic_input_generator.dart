@@ -1,5 +1,4 @@
-import 'package:dart_test_gen/test_generator.dart';
-import '../logic_profile.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 enum StringHint {
   caseSensitive,

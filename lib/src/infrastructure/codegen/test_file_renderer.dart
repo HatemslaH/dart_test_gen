@@ -1,5 +1,4 @@
-import '../../domain/models/enums.dart';
-import '../../domain/models/test_models.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// Descriptive `test('…')` titles include the expected value; cap length so runners stay readable.
 const int kMaxDescriptiveTestTitleLength = 220;
@@ -218,8 +217,8 @@ $inputs
   final expectLine = useClose
       ? 'expect(actual, closeTo(expected, ${_doubleLiteralForGenerated(spec.doubleEpsilon)}));'
       : matcherSecond != null
-      ? 'expect(actual, $matcherSecond);'
-      : 'expect(actual, expected);';
+          ? 'expect(actual, $matcherSecond);'
+          : 'expect(actual, expected);';
 
   final expectedDecl = (useClose || matcherSecond == null) ? '      final expected = $expected;\n' : '';
 
@@ -285,6 +284,7 @@ String generateTestFile({
   required String importPath,
   required List<MethodSpec> methods,
   List<String> extraImports = const [],
+
   /// Receiver constructor call (e.g. `Foo(a: 1)` when named parameters are required).
   String? receiverInstantiation,
 }) {

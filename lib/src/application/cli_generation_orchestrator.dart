@@ -2,20 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-import '../cli/log.dart';
-import '../cli/progress.dart';
-import 'package:dart_test_gen/gen_config.dart';
-import 'package:dart_test_gen/snapshot.dart';
-import 'package:dart_test_gen/source_parser.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
-
-import '../domain/generator_module.dart';
-import '../wiring/app_dependencies.dart';
-import 'cli_args.dart';
-import 'generation_isolate.dart';
-import 'generation_single_library.dart';
-import '../cli/snapshot_failure_formatting.dart';
-import 'snapshot_unit_test_generation.dart';
 
 EmitGenerationUi _mainThreadEmit({
   required GenerationProgressUi progressUi,

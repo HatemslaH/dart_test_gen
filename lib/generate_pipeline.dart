@@ -1,17 +1,4 @@
-import 'package:dart_test_gen/gen_config.dart';
-
-import 'src/application/cli_generation_orchestrator.dart';
-import 'src/application/generation_single_library.dart' as gen_single;
-import 'src/application/snapshot_unit_test_generation.dart' as snap;
-import 'src/domain/generator_module.dart';
-import 'src/infrastructure/io_generation_filesystem.dart';
-import 'src/ports/generation_filesystem.dart';
-import 'src/wiring/app_dependencies.dart';
-
-export 'src/application/cli_args.dart' show CliArgs, InvalidCliArgumentsException;
-export 'src/application/generation_isolate.dart'
-    show generationIsolateMain, generationIsolateSpawnMessage, isolateDoneSentinel, isolateResultPrefix;
-export 'src/cli/snapshot_failure_formatting.dart' show formatSnapshotRunnerFailure;
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 final class GeneratePipeline {
   GeneratePipeline();
@@ -22,20 +9,20 @@ final class GeneratePipeline {
 
   /// Expands files and directories into a sorted list of absolute `.dart` paths (default I/O).
   static List<String> expandGenerationTargets(String cwd, List<String> inputs) =>
-      snap.expandGenerationTargetsWithFs(IoGenerationFilesystem(), cwd, inputs);
+      expandGenerationTargetsWithFs(IoGenerationFilesystem(), cwd, inputs);
 
   /// `lib/a/b.dart` → `test/a/b_test.dart`
   static String testOutputPathForLib(String packageRoot, String absoluteLibPath) =>
-      snap.testOutputPathForLib(packageRoot, absoluteLibPath);
+      testOutputPathForLib(packageRoot, absoluteLibPath);
 
   static String shortLibLabel(String absoluteLibPath, String packageRoot) =>
-      snap.shortLibLabel(absoluteLibPath, packageRoot);
+      shortLibLabel(absoluteLibPath, packageRoot);
 
   /// Runs generation for a single library file.
   ///
   /// Uses [filesystem] / [generator] when provided; otherwise default I/O and the
   /// built-in snapshot unit-test module.
-  static Future<gen_single.SingleLibraryGenerationResult> generateSingleLibraryFile({
+  static Future<SingleLibraryGenerationResult> generateSingleLibraryFile({
     required String absoluteLibPath,
     required String packageRoot,
     required String packageName,
@@ -47,9 +34,9 @@ final class GeneratePipeline {
     GenerationFilesystem? filesystem,
     GeneratorModule? generator,
   }) =>
-      gen_single.generateSingleLibraryFile(
+      generateSingleLibraryFile(
         filesystem: filesystem ?? IoGenerationFilesystem(),
-        generator: generator ?? const snap.SnapshotUnitTestGeneratorModule(),
+        generator: generator ?? const SnapshotUnitTestGeneratorModule(),
         absoluteLibPath: absoluteLibPath,
         packageRoot: packageRoot,
         packageName: packageName,

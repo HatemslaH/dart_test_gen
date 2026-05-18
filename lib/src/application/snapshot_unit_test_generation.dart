@@ -1,14 +1,5 @@
-import 'package:dart_test_gen/resolved_dependencies.dart';
-import 'package:dart_test_gen/sampling.dart';
-import 'package:dart_test_gen/snapshot.dart';
-import 'package:dart_test_gen/source_parser.dart';
-import 'package:dart_test_gen/test_generator.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
-
-import '../domain/check_failure.dart';
-import '../domain/generator_module.dart';
-import '../infrastructure/io/io_process_runner.dart';
-import '../ports/generation_filesystem.dart';
 
 /// Invalid user path input when expanding generation targets (CLI prints and exits).
 final class GenerationTargetError implements Exception {
@@ -228,6 +219,23 @@ Future<GeneratorRunOutcome> runSnapshotUnitTestGeneration(GeneratorRunContext ct
   emit(progress: 100);
   v('done', testOut);
   return GeneratorRunSuccess();
+}
+
+/// Returns mandatory rows + sampled optional rows.
+List<TestCaseRow> sampleTestCases(
+  List<TestCaseRow> rows,
+  MethodConfig cfg,
+) {
+  final mandatory = rows.where((r) => r.throwsType != null).toList();
+  final optional = rows.where((r) => r.throwsType == null).toList();
+
+  final selected = switch (cfg.strategy) {
+    SamplingStrategy.full => truncateOptionalRows(optional, cfg.maxCases),
+    SamplingStrategy.random => randomSampleOptionalRows(optional, cfg.maxCases, cfg.seed),
+    SamplingStrategy.happyPath => optional.take(1).toList(),
+  };
+
+  return [...mandatory, ...selected];
 }
 
 /// `lib/a/b.dart` → `test/a/b_test.dart`

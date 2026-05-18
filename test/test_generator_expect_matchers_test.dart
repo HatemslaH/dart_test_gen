@@ -1,17 +1,17 @@
-import 'package:dart_test_gen/test_generator.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('success expectations — bool / null matchers', () {
     MethodSpec boolMethod({required bool useMatchers}) => MethodSpec(
-      name: 'isOk',
-      params: const [],
-      returnType: 'bool',
-      snapshotReturnType: 'bool',
-      isStatic: true,
-      useExpectMatchersBoolNull: useMatchers,
-      testCases: const [TestCaseRow(argLiterals: [], expectedLiteral: 'true')],
-    );
+          name: 'isOk',
+          params: const [],
+          returnType: 'bool',
+          snapshotReturnType: 'bool',
+          isStatic: true,
+          useExpectMatchersBoolNull: useMatchers,
+          testCases: const [TestCaseRow(argLiterals: [], expectedLiteral: 'true')],
+        );
 
     test('matchers on: isTrue without expected local', () {
       final out = stripGeneratedTimestamp(

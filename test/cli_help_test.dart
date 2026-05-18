@@ -1,7 +1,6 @@
 import 'dart:io';
 
-import 'package:dart_test_gen/src/cli/early_exit_handler.dart';
-import 'package:dart_test_gen/src/infrastructure/version_resolver.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:test/test.dart';
 
 String _readPubspecVersion() {

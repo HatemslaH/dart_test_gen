@@ -1,8 +1,4 @@
-import 'package:dart_test_gen/gen_config.dart';
-
-import '../domain/check_failure.dart';
-import '../domain/generator_module.dart';
-import '../ports/generation_filesystem.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// Outcome of generating a single library (check diff and optional stdout line, e.g. dry-run path).
 final class SingleLibraryGenerationResult {

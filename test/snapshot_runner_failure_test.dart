@@ -1,7 +1,6 @@
 import 'dart:io';
 
-import 'package:dart_test_gen/generate_pipeline.dart';
-import 'package:dart_test_gen/snapshot.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

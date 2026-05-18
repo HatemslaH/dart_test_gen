@@ -1,4 +1,4 @@
-import 'enums.dart';
+import 'method_kind.dart';
 import 'test_models.dart';
 
 /// Description of a method extracted from source (before snapshotting).

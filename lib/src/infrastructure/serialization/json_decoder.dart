@@ -1,6 +1,6 @@
-import '../../domain/models/parsed_models.dart';
-import '../../domain/models/snapshot_models.dart';
-import '../../domain/services/boundary_case_generator.dart';
+import 'package:dart_test_gen/src/domain/models/parsed_models.dart';
+import 'package:dart_test_gen/src/domain/models/snapshot_models.dart';
+import 'package:dart_test_gen/src/domain/services/boundary_case_generator.dart';
 
 List<MethodSnapshot> mergeDecodedSnapshots(
   List<ParsedMethod> methods,

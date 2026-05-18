@@ -1,4 +1,4 @@
-import 'package:dart_test_gen/snapshot.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// Structured, user-facing rendering of a [SnapshotRunnerFailure].
 String formatSnapshotRunnerFailure(SnapshotRunnerFailure f) {

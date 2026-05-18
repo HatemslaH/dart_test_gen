@@ -1,5 +1,4 @@
-import '../models/enums.dart';
-import '../models/test_models.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 const Map<ParamType, List<String>> kBoundaryValues = {
   ParamType.int_: ['0', '1', '-1', '2', '-2', '10', '-10'],

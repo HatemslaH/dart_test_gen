@@ -1,12 +1,7 @@
 import 'dart:convert';
 
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
-
-import '../../domain/models/enums.dart';
-import '../../domain/models/parsed_models.dart';
-import '../../domain/models/test_models.dart';
-import '../../domain/services/boundary_case_generator.dart';
-import '../io/package_path_resolver.dart';
 
 String _escapeDartString(String s) {
   return s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
@@ -177,8 +172,7 @@ String buildSnapshotRunnerSource({
   buf.writeln('Future<void> main() async {');
   buf.writeln('  final out = <Map<String, Object?>>[];');
   final receiverInfo = allFileClasses.where((c) => c.name == className).firstOrNull;
-  final receiverExpr =
-      receiverInfo != null ? instantiationExpressionForClass(receiverInfo) : '$className()';
+  final receiverExpr = receiverInfo != null ? instantiationExpressionForClass(receiverInfo) : '$className()';
   buf.writeln('  final c = $receiverExpr;');
   buf.writeln();
 

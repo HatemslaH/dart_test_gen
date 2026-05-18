@@ -1,4 +1,4 @@
-import 'package:dart_test_gen/src/application/cli_args.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:test/test.dart';
 
 void main() {

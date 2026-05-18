@@ -1,10 +1,8 @@
 import 'dart:io';
 
-import 'package:dart_test_gen/gen_config.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
-
-import '../../domain/ports/config_reader.dart';
 
 /// YAML-backed [ConfigReader] using `dart:io`.
 final class IoConfigReader implements ConfigReader {

@@ -1,12 +1,6 @@
 import 'dart:isolate';
 
-import 'package:dart_test_gen/gen_config.dart';
-import 'package:dart_test_gen/snapshot.dart';
-
-import 'snapshot_unit_test_generation.dart';
-import '../infrastructure/io_generation_filesystem.dart';
-import 'generation_single_library.dart';
-import '../cli/snapshot_failure_formatting.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// Messages from the isolate (sendable types only).
 abstract final class GenerationIsolateProtocol {

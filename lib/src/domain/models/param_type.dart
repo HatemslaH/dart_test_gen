@@ -1,10 +1,3 @@
-enum MethodKind {
-  method,
-  getter,
-  setter,
-  operator_,
-}
-
 enum ParamType {
   int_,
   double_,

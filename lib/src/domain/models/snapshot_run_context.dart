@@ -1,4 +1,5 @@
-import '../ports/process_runner.dart';
+import 'package:dart_test_gen/src/domain/ports/process_runner.dart';
+
 import 'parsed_models.dart';
 
 /// Optional callbacks and flags for [runSnapshots].

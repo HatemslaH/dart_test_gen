@@ -1,4 +1,4 @@
-import 'enums.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 class Param {
   final String name;

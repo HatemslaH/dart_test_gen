@@ -27,8 +27,15 @@ This package keeps **stable** `package:dart_test_gen/<name>.dart` entrypoints at
 ## Internal graph (post–structural cleanup)
 
 - `generate_pipeline.dart` → orchestrator, `gen_config`, `sampling`, `snapshot`, `source_parser`, `test_generator` (boundary), `wiring/app_dependencies`
-- `snapshot.dart` → `SnapshotRunContext`, codegen + JSON merge, `IoProcessRunner`
+- `snapshot.dart` → re-exports `src/barrels/snapshot_api.dart` and `runSnapshots` from `src/application/snapshot_runner_execution.dart`
 - `source_parser.dart` → `infrastructure/ast/dart_ast_parser`, `domain/models/parsed_models`, `infrastructure/io/package_path_resolver`
 - `sampling.dart` → `gen_config`, `test_generator`
 
 After this change, `generate_pipeline.dart` delegates orchestration to `src/application/cli_generation_orchestrator.dart` and snapshot generation to `src/application/snapshot_unit_test_generation.dart`.
+
+## Internal imports (`package:`) and barrels
+
+- **Default:** Any import from one folder under `lib/src/` to another (for example `application/` → `infrastructure/`) SHALL use `package:dart_test_gen/src/...` URIs so paths stay stable when files move.
+- **Same-directory exception:** Imports within the **same directory** MAY stay relative (for example `import 'enums.dart';` next to `test_models.dart`, or `import 'cli_args.dart';` next to `cli_generation_orchestrator.dart`). Do not use long `../../..` chains—switch those to `package:` imports.
+- **Barrels:** Feature- or API-shaped barrels live under `lib/src/barrels/` (for example `snapshot_api.dart`) to group re-exports consumed by public `lib/*.dart` facades. Keep barrels **acyclic** (no barrel re-exporting another barrel that pulls the first back in). Prefer small barrels over one library that re-exports the entire tree.
+- **Public facades:** `lib/*.dart` files SHOULD use `export 'package:dart_test_gen/src/...';` for implementation details they re-expose, matching `lib/snapshot.dart`.

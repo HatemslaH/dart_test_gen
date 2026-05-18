@@ -1,6 +1,5 @@
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:test/test.dart';
-import 'package:dart_test_gen/snapshot.dart';
-import 'package:dart_test_gen/source_parser.dart';
 
 void main() {
   group('dartLiteralFromJson — primitives', () {

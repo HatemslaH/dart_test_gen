@@ -1,7 +1,5 @@
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:test/test.dart';
-import 'package:dart_test_gen/test_generator.dart';
-import 'package:dart_test_gen/src/domain/logic_profile.dart';
-import 'package:dart_test_gen/src/domain/services/dynamic_input_generator.dart';
 
 void main() {
   final generator = const DynamicInputGenerator();

@@ -1,5 +1,5 @@
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:test/test.dart';
-import 'package:dart_test_gen/test_generator.dart';
 
 void main() {
   group('stripGeneratedTimestamp', () {
