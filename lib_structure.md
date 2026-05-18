@@ -1,82 +1,90 @@
 # Project Structure
 
-- `.\lib\boundary_test_generator.dart`
+- `.\lib\dart_test_gen.dart`
 - `.\lib\generate_pipeline.dart`
-- `.\lib\gen_config.dart`
-- `.\lib\resolved_dependencies.dart`
-- `.\lib\sampling.dart`
-- `.\lib\snapshot.dart`
-- `.\lib\source_parser.dart`
+- `.\lib\src\application\application.dart`
 - `.\lib\src\application\cli_args.dart`
 - `.\lib\src\application\cli_generation_orchestrator.dart`
-- `.\lib\src\application\generation_isolate.dart`
-- `.\lib\src\application\generation_single_library.dart`
+- `.\lib\src\application\exceptions\exceptions.dart`
+- `.\lib\src\application\exceptions\generation_target_error.dart`
+- `.\lib\src\application\exceptions\invalid_cli_arguments_exception.dart`
+- `.\lib\src\application\generation_isolate_protocol.dart`
+- `.\lib\src\application\isolate_message_spawner.dart`
+- `.\lib\src\application\models\cli_result.dart`
+- `.\lib\src\application\models\models.dart`
+- `.\lib\src\application\models\single_library_generation_result.dart`
+- `.\lib\src\application\single_library_generator.dart`
+- `.\lib\src\application\snapshot_runner_execution.dart`
+- `.\lib\src\application\snapshot_run_helpers.dart`
 - `.\lib\src\application\snapshot_unit_test_generation.dart`
+- `.\lib\src\cli\cli.dart`
+- `.\lib\src\cli\cli_dependencies.dart`
 - `.\lib\src\cli\early_exit_handler.dart`
 - `.\lib\src\cli\help.dart`
 - `.\lib\src\cli\log.dart`
 - `.\lib\src\cli\progress.dart`
-- `.\lib\src\cli\snapshot_failure_formatting.dart`
+- `.\lib\src\cli\snapshot_failure_formatter.dart`
 - `.\lib\src\domain\check_failure.dart`
+- `.\lib\src\domain\domain.dart`
+- `.\lib\src\domain\enums\enums.dart`
+- `.\lib\src\domain\enums\sampling_strategy.dart`
 - `.\lib\src\domain\generator_module.dart`
 - `.\lib\src\domain\logic_profile.dart`
-- `.\lib\src\domain\models\enums.dart`
+- `.\lib\src\domain\models\generator_config.dart`
+- `.\lib\src\domain\models\method_config.dart`
+- `.\lib\src\domain\models\method_kind.dart`
+- `.\lib\src\domain\models\models.dart`
+- `.\lib\src\domain\models\param_type.dart`
 - `.\lib\src\domain\models\parsed_models.dart`
 - `.\lib\src\domain\models\snapshot_models.dart`
 - `.\lib\src\domain\models\snapshot_run_context.dart`
 - `.\lib\src\domain\models\test_models.dart`
 - `.\lib\src\domain\ports\config_reader.dart`
+- `.\lib\src\domain\ports\ports.dart`
 - `.\lib\src\domain\ports\process_runner.dart`
 - `.\lib\src\domain\services\boundary_case_generator.dart`
 - `.\lib\src\domain\services\dynamic_input_generator.dart`
+- `.\lib\src\domain\services\sampling_support.dart`
+- `.\lib\src\domain\services\services.dart`
+- `.\lib\src\infrastructure\analyzer\analyzer.dart`
 - `.\lib\src\infrastructure\analyzer\library_path_resolver.dart`
+- `.\lib\src\infrastructure\ast\ast.dart`
 - `.\lib\src\infrastructure\ast\dart_ast_parser.dart`
 - `.\lib\src\infrastructure\ast\method_logic_analyzer.dart`
+- `.\lib\src\infrastructure\codegen\codegen.dart`
 - `.\lib\src\infrastructure\codegen\snapshot_runner_generator.dart`
 - `.\lib\src\infrastructure\codegen\test_file_renderer.dart`
+- `.\lib\src\infrastructure\config\config.dart`
 - `.\lib\src\infrastructure\config\config_loader.dart`
+- `.\lib\src\infrastructure\infrastructure.dart`
+- `.\lib\src\infrastructure\io\io.dart`
 - `.\lib\src\infrastructure\io\io_process_runner.dart`
 - `.\lib\src\infrastructure\io\package_path_resolver.dart`
 - `.\lib\src\infrastructure\io_generation_filesystem.dart`
 - `.\lib\src\infrastructure\serialization\json_decoder.dart`
+- `.\lib\src\infrastructure\serialization\serialization.dart`
 - `.\lib\src\infrastructure\version_resolver.dart`
 - `.\lib\src\ports\generation_filesystem.dart`
+- `.\lib\src\ports\ports.dart`
 - `.\lib\src\README.md`
+- `.\lib\src\src.dart`
 - `.\lib\src\wiring\app_dependencies.dart`
-- `.\lib\test_generator.dart`
+- `.\lib\src\wiring\wiring.dart`
 
 ---
 
-## Файл: .\lib\boundary_test_generator.dart
+## Файл: .\lib\dart_test_gen.dart
 
 ```dart
-/// Boundary-case unit test file generation (models, boundary logic, rendering).
-library;
-
-export 'src/domain/models/enums.dart';
-export 'src/domain/models/test_models.dart';
-export 'src/domain/services/boundary_case_generator.dart' show generateBoundaryCases, kBoundaryValues;
-export 'src/infrastructure/codegen/test_file_renderer.dart' show generateTestFile, stripGeneratedTimestamp;
+export 'generate_pipeline.dart';
+export 'src/src.dart';
 
 ```
 
 ## Файл: .\lib\generate_pipeline.dart
 
 ```dart
-import 'package:dart_test_gen/gen_config.dart';
-
-import 'src/application/cli_generation_orchestrator.dart';
-import 'src/application/generation_single_library.dart' as gen_single;
-import 'src/application/snapshot_unit_test_generation.dart' as snap;
-import 'src/domain/generator_module.dart';
-import 'src/infrastructure/io_generation_filesystem.dart';
-import 'src/ports/generation_filesystem.dart';
-import 'src/wiring/app_dependencies.dart';
-
-export 'src/application/cli_args.dart' show CliArgs, InvalidCliArgumentsException;
-export 'src/application/generation_isolate.dart'
-    show generationIsolateMain, generationIsolateSpawnMessage, isolateDoneSentinel, isolateResultPrefix;
-export 'src/cli/snapshot_failure_formatting.dart' show formatSnapshotRunnerFailure;
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 final class GeneratePipeline {
   GeneratePipeline();
@@ -87,20 +95,20 @@ final class GeneratePipeline {
 
   /// Expands files and directories into a sorted list of absolute `.dart` paths (default I/O).
   static List<String> expandGenerationTargets(String cwd, List<String> inputs) =>
-      snap.expandGenerationTargetsWithFs(IoGenerationFilesystem(), cwd, inputs);
+      expandGenerationTargetsWithFs(IoGenerationFilesystem(), cwd, inputs);
 
   /// `lib/a/b.dart` → `test/a/b_test.dart`
   static String testOutputPathForLib(String packageRoot, String absoluteLibPath) =>
-      snap.testOutputPathForLib(packageRoot, absoluteLibPath);
+      testOutputPathForLib(packageRoot, absoluteLibPath);
 
   static String shortLibLabel(String absoluteLibPath, String packageRoot) =>
-      snap.shortLibLabel(absoluteLibPath, packageRoot);
+      shortLibLabel(absoluteLibPath, packageRoot);
 
   /// Runs generation for a single library file.
   ///
   /// Uses [filesystem] / [generator] when provided; otherwise default I/O and the
   /// built-in snapshot unit-test module.
-  static Future<gen_single.SingleLibraryGenerationResult> generateSingleLibraryFile({
+  static Future<SingleLibraryGenerationResult> generateSingleLibraryFile({
     required String absoluteLibPath,
     required String packageRoot,
     required String packageName,
@@ -112,9 +120,9 @@ final class GeneratePipeline {
     GenerationFilesystem? filesystem,
     GeneratorModule? generator,
   }) =>
-      gen_single.generateSingleLibraryFile(
+      generateSingleLibraryFile(
         filesystem: filesystem ?? IoGenerationFilesystem(),
-        generator: generator ?? const snap.SnapshotUnitTestGeneratorModule(),
+        generator: generator ?? const SnapshotUnitTestGeneratorModule(),
         absoluteLibPath: absoluteLibPath,
         packageRoot: packageRoot,
         packageName: packageName,
@@ -126,382 +134,41 @@ final class GeneratePipeline {
       );
 
   /// CLI entry: parse args, load config, run registered generator module(s).
-  static Future<void> generateFromCli(List<String> args) async {
-    await CliGenerationOrchestrator(AppDependencies.production()).run(args);
-  }
+  static Future<void> generateFromCli(
+    List<String> args, {
+    AppDependencies? dependencies,
+  }) async =>
+      await CliGenerationOrchestrator(dependencies ?? AppDependencies.production()).run(args);
 }
 
 ```
 
-## Файл: .\lib\gen_config.dart
+## Файл: .\lib\src\application\application.dart
 
 ```dart
-import 'package:yaml/yaml.dart';
-
-enum SamplingStrategy {
-  full, // all possible combinations
-  random, // random selection of several combinations
-  happyPath; // happy paths only (no exceptions)
-
-  static SamplingStrategy fromString(String? value) {
-    return switch (value?.toLowerCase()) {
-      'full' => SamplingStrategy.full,
-      'random' => SamplingStrategy.random,
-      'happy_path' || 'happypath' => SamplingStrategy.happyPath,
-      _ => SamplingStrategy.full,
-    };
-  }
-}
-
-class MethodConfig {
-  final SamplingStrategy strategy;
-  final int maxCases;
-  final int? seed;
-
-  /// When true, successful `double` expectations use `closeTo` with [doubleEpsilon].
-  final bool useCloseForDouble;
-
-  /// Absolute epsilon for `closeTo` (only used when [useCloseForDouble] is true).
-  final double doubleEpsilon;
-
-  /// When true, bool/null snapshot literals emit `isTrue` / `isFalse` / `isNull` instead of `expected` locals.
-  final bool useExpectMatchersBoolNull;
-
-  const MethodConfig({
-    this.strategy = SamplingStrategy.full,
-    this.maxCases = 200,
-    this.seed,
-    this.useCloseForDouble = false,
-    this.doubleEpsilon = 1e-9,
-    this.useExpectMatchersBoolNull = true,
-  });
-
-  factory MethodConfig.fromYaml(YamlMap? yaml, MethodConfig defaults) {
-    if (yaml == null) return defaults;
-
-    final useClose = yaml.containsKey('use_close_for_double')
-        ? (yaml['use_close_for_double'] as bool? ?? defaults.useCloseForDouble)
-        : defaults.useCloseForDouble;
-
-    final epsFromYaml = yaml.containsKey('double_epsilon')
-        ? (yamlScalarToPositiveDouble(yaml['double_epsilon']) ?? defaults.doubleEpsilon)
-        : defaults.doubleEpsilon;
-
-    final useMatchers = yaml.containsKey('use_expect_matchers_bool_null')
-        ? (yaml['use_expect_matchers_bool_null'] as bool? ?? defaults.useExpectMatchersBoolNull)
-        : defaults.useExpectMatchersBoolNull;
-
-    return MethodConfig(
-      strategy:
-          yaml.containsKey('strategy') ? SamplingStrategy.fromString(yaml['strategy'] as String?) : defaults.strategy,
-      maxCases: yaml['max_cases'] as int? ?? defaults.maxCases,
-      seed: yaml['seed'] as int? ?? defaults.seed,
-      useCloseForDouble: useClose,
-      doubleEpsilon: epsFromYaml,
-      useExpectMatchersBoolNull: useMatchers,
-    );
-  }
-
-  /// Parses a finite positive `double` from YAML values (`num`, `String`, etc.).
-  static double? yamlScalarToPositiveDouble(Object? value) {
-    if (value == null) return null;
-    if (value is double) {
-      if (!value.isFinite || value <= 0) return null;
-      return value;
-    }
-    if (value is int) {
-      if (value <= 0) return null;
-      return value.toDouble();
-    }
-    if (value is String) {
-      final d = double.tryParse(value.trim());
-      if (d == null || !d.isFinite || d <= 0) return null;
-      return d;
-    }
-    return null;
-  }
-
-  MethodConfig copyWith({
-    SamplingStrategy? strategy,
-    int? maxCases,
-    int? seed,
-    bool? useCloseForDouble,
-    double? doubleEpsilon,
-    bool? useExpectMatchersBoolNull,
-  }) {
-    return MethodConfig(
-      strategy: strategy ?? this.strategy,
-      maxCases: maxCases ?? this.maxCases,
-      seed: seed ?? this.seed,
-      useCloseForDouble: useCloseForDouble ?? this.useCloseForDouble,
-      doubleEpsilon: doubleEpsilon ?? this.doubleEpsilon,
-      useExpectMatchersBoolNull: useExpectMatchersBoolNull ?? this.useExpectMatchersBoolNull,
-    );
-  }
-}
-
-class GeneratorConfig {
-  final MethodConfig defaults;
-  final Map<String, MethodConfig> methods;
-  final bool keepRunner;
-
-  /// When true, generation runs but no test files are written; output paths are printed to stdout.
-  final bool dryRun;
-
-  /// When true, generated content is compared to the existing file instead of written.
-  /// Exits with code 1 if any target differs.
-  final bool check;
-
-  const GeneratorConfig({
-    this.defaults = const MethodConfig(),
-    this.methods = const {},
-    this.keepRunner = false,
-    this.dryRun = false,
-    this.check = false,
-  });
-
-  MethodConfig forMethod(String name) => methods[name] ?? defaults;
-}
-
-```
-
-## Файл: .\lib\resolved_dependencies.dart
-
-```dart
-export 'src/infrastructure/analyzer/library_path_resolver.dart';
-
-```
-
-## Файл: .\lib\sampling.dart
-
-```dart
-import 'dart:math';
-import 'gen_config.dart';
-import 'test_generator.dart';
-
-/// Returns mandatory rows + sampled optional rows.
-List<TestCaseRow> sampleTestCases(
-  List<TestCaseRow> rows,
-  MethodConfig cfg,
-) {
-  final mandatory = rows.where((r) => r.throwsType != null).toList();
-  final optional = rows.where((r) => r.throwsType == null).toList();
-
-  final selected = switch (cfg.strategy) {
-    SamplingStrategy.full => _truncate(optional, cfg.maxCases),
-    SamplingStrategy.random => _randomSample(optional, cfg.maxCases, cfg.seed),
-    SamplingStrategy.happyPath => optional.take(1).toList(),
-  };
-
-  return [...mandatory, ...selected];
-}
-
-List<TestCaseRow> _truncate(List<TestCaseRow> rows, int max) {
-  if (rows.length <= max) return rows;
-  return rows.take(max).toList();
-}
-
-List<TestCaseRow> _randomSample(List<TestCaseRow> rows, int max, int? seed) {
-  if (rows.length <= max) return rows;
-
-  final random = Random(seed);
-  final indices = List.generate(rows.length, (i) => i);
-  indices.shuffle(random);
-
-  final selectedIndices = indices.take(max).toList()..sort();
-  return selectedIndices.map((i) => rows[i]).toList();
-}
-
-```
-
-## Файл: .\lib\snapshot.dart
-
-```dart
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:path/path.dart' as p;
-
-import 'src/domain/models/snapshot_models.dart';
-import 'src/domain/models/snapshot_run_context.dart';
-import 'src/infrastructure/codegen/snapshot_runner_generator.dart';
-import 'src/infrastructure/serialization/json_decoder.dart';
-
-export 'src/domain/models/parsed_models.dart' show ClassInfo, ParsedClass, ParsedMethod, instantiationExpressionForClass;
-export 'src/domain/models/snapshot_models.dart';
-export 'src/domain/models/snapshot_run_context.dart';
-export 'src/domain/ports/process_runner.dart';
-export 'src/infrastructure/codegen/snapshot_runner_generator.dart'
-    show formatArgsForSnapshot, snapshotInvokeExpression, writeSnapshotRunnerImports;
-export 'src/infrastructure/serialization/json_decoder.dart' show dartLiteralFromJson, dartLiteralFromJsonLoose, mergeDecodedSnapshots;
-
-String _tailLines(String text, int maxLines) {
-  final lines = const LineSplitter().convert(text);
-  if (lines.length <= maxLines) return text;
-  return lines.sublist(lines.length - maxLines).join('\n');
-}
-
-void _snapshotVerbose(void Function(String line)? sink, String label, String step, String detail) {
-  sink?.call('[$label]\tsnapshot/$step\t$detail\n');
-}
-
-/// Generates the runner source, executes it, and returns snapshots per method.
-///
-/// [onSnapshotFraction] — sub-progress for the snapshot stage only, 0 to 1.
-/// [onVerboseLine] — verbose lines (typically only with `-v`).
-/// [onRunnerFailed] — output when the `dart run` runner process fails (stderr/stdout).
-List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
-  final parsed = ctx.parsed;
-  final packageRoot = ctx.packageRoot;
-  final packageName = ctx.packageName;
-  final absoluteLibPath = ctx.absoluteLibPath;
-  final extraPackageImports = ctx.extraPackageImports;
-  final logLabel = ctx.logLabel;
-  final onSnapshotFraction = ctx.onSnapshotFraction;
-  final onVerboseLine = ctx.onVerboseLine;
-  final onRunnerFailed = ctx.onRunnerFailed;
-  final keepRunner = ctx.keepRunner;
-  final processRunner = ctx.processRunner;
-
-  void sl(String step, String detail) => _snapshotVerbose(onVerboseLine, logLabel, step, detail);
-
-  void frac(double v) => onSnapshotFraction?.call(v.clamp(0.0, 1.0));
-
-  frac(0);
-
-  final runnerDir = Directory(p.join(Directory.systemTemp.path, 'dart_test_gen'));
-  runnerDir.createSync(recursive: true);
-  final runnerPath = p.join(
-    runnerDir.path,
-    'snapshot_runner_${parsed.className}_${DateTime.now().microsecondsSinceEpoch}.dart',
-  );
-
-  sl('runner', 'writing temporary script…');
-  frac(0.08);
-
-  final source = buildSnapshotRunnerSource(
-    packageRoot: packageRoot,
-    packageName: packageName,
-    absoluteLibPath: absoluteLibPath,
-    extraPackageImports: extraPackageImports,
-    className: parsed.className,
-    methods: parsed.methods,
-    allFileClasses: parsed.allFileClasses,
-  );
-
-  File(runnerPath).writeAsStringSync(source);
-  sl('runner', runnerPath);
-  frac(0.22);
-
-  var success = false;
-  try {
-    sl('process', 'dart run snapshot runner…');
-    frac(0.38);
-    final packageConfig = p.join(packageRoot, '.dart_tool', 'package_config.json');
-    final result = processRunner.runSync(
-      Platform.resolvedExecutable,
-      ['run', '--packages=$packageConfig', runnerPath],
-      workingDirectory: packageRoot,
-      runInShell: false,
-    );
-    if (result.exitCode != 0) {
-      final se = result.stderr;
-      final so = result.stdout;
-      onRunnerFailed?.call(se, so);
-      throw SnapshotRunnerFailure(
-        stage: 'compile',
-        absoluteLibPath: absoluteLibPath,
-        className: parsed.className,
-        runnerPath: runnerPath,
-        dartStderrTail: _tailLines(se.isNotEmpty ? se : so, 40),
-        exitCode: result.exitCode,
-      );
-    }
-    sl('process', 'exit 0, decoding JSON…');
-    frac(0.92);
-    final raw = result.stdout;
-    dynamic decoded;
-    try {
-      decoded = jsonDecode(raw);
-    } catch (e) {
-      onRunnerFailed?.call(result.stderr, raw);
-      throw SnapshotRunnerFailure(
-        stage: 'parse',
-        absoluteLibPath: absoluteLibPath,
-        className: parsed.className,
-        runnerPath: runnerPath,
-        dartStderrTail: _tailLines(
-          'jsonDecode failed: $e\nstdout (head):\n${raw.length > 4000 ? raw.substring(0, 4000) : raw}',
-          40,
-        ),
-      );
-    }
-    if (decoded is! List) {
-      onRunnerFailed?.call(result.stderr, raw);
-      throw SnapshotRunnerFailure(
-        stage: 'parse',
-        absoluteLibPath: absoluteLibPath,
-        className: parsed.className,
-        runnerPath: runnerPath,
-        dartStderrTail: _tailLines('expected JSON array, got: $decoded', 40),
-      );
-    }
-    frac(1.0);
-    final merged = mergeDecodedSnapshots(parsed.methods, parsed.allFileClasses, decoded);
-    success = true;
-    return merged;
-  } finally {
-    if (success && !keepRunner) {
-      try {
-        File(runnerPath).deleteSync();
-      } catch (_) {}
-    }
-  }
-}
-
-```
-
-## Файл: .\lib\source_parser.dart
-
-```dart
-export 'src/domain/models/parsed_models.dart';
-export 'src/infrastructure/ast/dart_ast_parser.dart';
-export 'src/infrastructure/io/package_path_resolver.dart';
+export 'cli_args.dart';
+export 'cli_generation_orchestrator.dart';
+export 'exceptions/exceptions.dart';
+export 'generation_isolate_protocol.dart';
+export 'isolate_message_spawner.dart';
+export 'models/models.dart';
+export 'single_library_generator.dart';
+export 'snapshot_run_helpers.dart';
+export 'snapshot_runner_execution.dart';
+export 'snapshot_unit_test_generation.dart';
 
 ```
 
 ## Файл: .\lib\src\application\cli_args.dart
 
 ```dart
-/// Thrown when CLI arguments are invalid; the CLI layer should print [message] and exit (e.g. 64).
-final class InvalidCliArgumentsException implements Exception {
-  const InvalidCliArgumentsException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 final class CliArgs {
   CliArgs();
 
   /// Parses CLI arguments: paths, `--class`, `-v`/`--verbose`, sampling flags, and mode flags.
-  static ({
-    List<String> inputs,
-    String? className,
-    bool verbose,
-    String? strategy,
-    int? maxCases,
-    int? seed,
-    String? configPath,
-    bool? useCloseForDouble,
-    double? doubleEpsilon,
-    bool? useExpectMatchersBoolNull,
-    bool? keepRunner,
-    bool? dryRun,
-    bool? check,
-  }) parseCliArgs(List<String> args) {
+  static CliResult parseCliArgs(List<String> args) {
     String? className;
     var verbose = false;
     String? strategy;
@@ -573,7 +240,8 @@ final class CliArgs {
         '  --config <path>                 path to config file (default: dart_test_gen.yaml).',
       );
     }
-    return (
+
+    return CliResult(
       inputs: rest,
       className: className,
       verbose: verbose,
@@ -600,55 +268,17 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-import '../cli/log.dart';
-import '../cli/progress.dart';
-import 'package:dart_test_gen/gen_config.dart';
-import 'package:dart_test_gen/snapshot.dart';
-import 'package:dart_test_gen/source_parser.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
-
-import '../domain/generator_module.dart';
-import '../wiring/app_dependencies.dart';
-import 'cli_args.dart';
-import 'generation_isolate.dart';
-import 'generation_single_library.dart';
-import '../cli/snapshot_failure_formatting.dart';
-import 'snapshot_unit_test_generation.dart';
-
-EmitGenerationUi _mainThreadEmit({
-  required GenerationProgressUi progressUi,
-  required String displayLabel,
-  required bool verbose,
-}) {
-  return ({double? progress, String? line, bool? error}) {
-    final isErr = error == true;
-    if (progress != null) {
-      progressUi.setPercent(displayLabel, progress);
-    }
-    if (line != null && line.isNotEmpty) {
-      if (isErr) {
-        CliLog.err(line.endsWith('\n') ? line : '$line\n');
-      } else if (verbose) {
-        CliLog.err(line.endsWith('\n') ? line : '$line\n');
-      }
-    }
-  };
-}
-
-bool _isDartUnderLib(String absoluteFile, String packageRoot) {
-  final libRoot = p.normalize(p.join(packageRoot, 'lib'));
-  final file = p.normalize(absoluteFile);
-  return p.isWithin(libRoot, file);
-}
 
 /// CLI orchestration: resolve targets, config, then single-thread or isolate fan-out.
 final class CliGenerationOrchestrator {
-  CliGenerationOrchestrator(this._deps);
+  CliGenerationOrchestrator(AppDependencies deps) : _deps = deps;
 
   final AppDependencies _deps;
 
   Future<void> run(List<String> args) async {
-    final parsedArgs;
+    final CliResult parsedArgs;
     try {
       parsedArgs = CliArgs.parseCliArgs(args);
     } on InvalidCliArgumentsException catch (e) {
@@ -742,7 +372,7 @@ final class CliGenerationOrchestrator {
       final label = labels.first;
       late final SingleLibraryGenerationResult genResult;
       try {
-        genResult = await generateSingleLibraryFile(
+        genResult = await _deps.singleLibraryGenerator.generateSingleLibraryFile(
           filesystem: _deps.filesystem,
           generator: _deps.defaultGenerator,
           absoluteLibPath: targets.first,
@@ -756,7 +386,7 @@ final class CliGenerationOrchestrator {
         );
       } on SnapshotRunnerFailure catch (f) {
         ui.finish();
-        CliLog.err(formatSnapshotRunnerFailure(f));
+        CliLog.err(_deps.cli.snapshotFailureFormatter.format(f));
         exit(1);
       } catch (e, st) {
         ui.finish();
@@ -823,12 +453,12 @@ final class CliGenerationOrchestrator {
           }
           return;
         }
-        if (message is String && message.startsWith(isolateResultPrefix)) {
+        if (message is String && message.startsWith(GenerationIsolateProtocol.isolateResultPrefix)) {
           success = message.endsWith(':ok');
           sawResult = true;
           return;
         }
-        if (message == isolateDoneSentinel) {
+        if (message == GenerationIsolateProtocol.isolateDoneSentinel) {
           if (!doneSent) {
             doneSent = true;
             if (!sawResult) {
@@ -848,7 +478,7 @@ final class CliGenerationOrchestrator {
         receivePort.close();
       }));
 
-      final isolateMessage = generationIsolateSpawnMessage(
+      final isolateMessage = _deps.isolateMessageSpawner.spawnMessage(
         absoluteLibPath: libAbs,
         packageRoot: packageRoot,
         packageName: packageName,
@@ -860,7 +490,7 @@ final class CliGenerationOrchestrator {
       );
 
       await Isolate.spawn(
-        generationIsolateMain,
+        _deps.isolateMessageSpawner.generationIsolateMain,
         isolateMessage,
         errorsAreFatal: false,
         debugName: p.basename(libAbs),
@@ -891,192 +521,46 @@ final class CliGenerationOrchestrator {
       exit(1);
     }
   }
+
+  EmitGenerationUi _mainThreadEmit({
+    required GenerationProgressUi progressUi,
+    required String displayLabel,
+    required bool verbose,
+  }) =>
+      ({double? progress, String? line, bool? error}) {
+        final isErr = error == true;
+        if (progress != null) {
+          progressUi.setPercent(displayLabel, progress);
+        }
+        if (line != null && line.isNotEmpty) {
+          if (isErr) {
+            CliLog.err(line.endsWith('\n') ? line : '$line\n');
+          } else if (verbose) {
+            CliLog.err(line.endsWith('\n') ? line : '$line\n');
+          }
+        }
+      };
+
+  bool _isDartUnderLib(String absoluteFile, String packageRoot) {
+    final libRoot = p.normalize(p.join(packageRoot, 'lib'));
+    final file = p.normalize(absoluteFile);
+    return p.isWithin(libRoot, file);
+  }
 }
 
 ```
 
-## Файл: .\lib\src\application\generation_isolate.dart
+## Файл: .\lib\src\application\exceptions\exceptions.dart
 
 ```dart
-import 'dart:isolate';
-
-import 'package:dart_test_gen/gen_config.dart';
-import 'package:dart_test_gen/snapshot.dart';
-
-import 'snapshot_unit_test_generation.dart';
-import '../infrastructure/io_generation_filesystem.dart';
-import 'generation_single_library.dart';
-import '../cli/snapshot_failure_formatting.dart';
-
-/// Messages from the isolate (sendable types only).
-abstract final class GenerationIsolateProtocol {
-  static const msgProgress = 'p';
-  static const msgVerbose = 'v';
-  static const msgError = 'e';
-  static const msgCheckFail = 'cf';
-  static const msgStdout = 'so';
-}
-
-/// [isolateDoneSentinel] follows [isolateResultPrefix].
-const isolateResultPrefix = '__dart_test_gen_result__';
-const isolateDoneSentinel = '__dart_test_gen_isolate_done__';
-
-Map<String, Object?> generationIsolateSpawnMessage({
-  required String absoluteLibPath,
-  required String packageRoot,
-  required String packageName,
-  required String? className,
-  required String displayLabel,
-  required bool verbose,
-  required GeneratorConfig config,
-  required SendPort logPort,
-}) =>
-    <String, Object?>{
-      'absoluteLibPath': absoluteLibPath,
-      'packageRoot': packageRoot,
-      'packageName': packageName,
-      'className': className,
-      'displayLabel': displayLabel,
-      'verbose': verbose,
-      'config': config,
-      'logPort': logPort,
-    };
-
-@pragma('vm:entry-point')
-Future<void> generationIsolateMain(Map<String, Object?> message) async {
-  final path = message['absoluteLibPath']! as String;
-  final root = message['packageRoot']! as String;
-  final pkg = message['packageName']! as String;
-  final className = message['className'] as String?;
-  final displayLabel = message['displayLabel']! as String;
-  final verbose = message['verbose']! as bool;
-  final config = message['config']! as GeneratorConfig;
-  final port = message['logPort']! as SendPort;
-
-  void bridge({double? progress, String? line, bool? error}) {
-    final isErr = error == true;
-    if (progress != null) {
-      port.send(<String, Object?>{
-        't': GenerationIsolateProtocol.msgProgress,
-        'l': displayLabel,
-        'pct': progress,
-      });
-    }
-    if (line != null && (verbose || isErr)) {
-      port.send(<String, Object?>{
-        't': isErr ? GenerationIsolateProtocol.msgError : GenerationIsolateProtocol.msgVerbose,
-        'm': line,
-      });
-    }
-  }
-
-  var ok = false;
-  try {
-    final result = await generateSingleLibraryFile(
-      filesystem: IoGenerationFilesystem(),
-      generator: const SnapshotUnitTestGeneratorModule(),
-      absoluteLibPath: path,
-      packageRoot: root,
-      packageName: pkg,
-      className: className,
-      displayLabel: displayLabel,
-      verbose: verbose,
-      config: config,
-      emit: bridge,
-    );
-    if (result.checkFailure != null) {
-      port.send(<String, Object?>{'t': GenerationIsolateProtocol.msgCheckFail, 's': result.checkFailure!.summary});
-    }
-    final outLine = result.stdoutLine;
-    if (outLine != null) {
-      port.send(<String, Object?>{'t': GenerationIsolateProtocol.msgStdout, 'm': outLine});
-    }
-    ok = true;
-  } on SnapshotRunnerFailure catch (f) {
-    bridge(line: formatSnapshotRunnerFailure(f), error: true);
-  } catch (e, st) {
-    bridge(
-      line: 'ERROR\t$e\n$st\n',
-      error: true,
-    );
-  }
-  port.send('$isolateResultPrefix:${ok ? "ok" : "fail"}');
-  port.send(isolateDoneSentinel);
-}
+export 'generation_target_error.dart';
+export 'invalid_cli_arguments_exception.dart';
 
 ```
 
-## Файл: .\lib\src\application\generation_single_library.dart
+## Файл: .\lib\src\application\exceptions\generation_target_error.dart
 
 ```dart
-import 'package:dart_test_gen/gen_config.dart';
-
-import '../domain/check_failure.dart';
-import '../domain/generator_module.dart';
-import '../ports/generation_filesystem.dart';
-
-/// Outcome of generating a single library (check diff and optional stdout line, e.g. dry-run path).
-final class SingleLibraryGenerationResult {
-  const SingleLibraryGenerationResult({this.checkFailure, this.stdoutLine});
-
-  final CheckFailure? checkFailure;
-  final String? stdoutLine;
-}
-
-/// Runs generation for a single library file via a [GeneratorModule].
-///
-/// Returns a [SingleLibraryGenerationResult] with [SingleLibraryGenerationResult.checkFailure]
-/// set when `config.check` is true and the generated content differs from the existing test file.
-Future<SingleLibraryGenerationResult> generateSingleLibraryFile({
-  required GenerationFilesystem filesystem,
-  required GeneratorModule generator,
-  required String absoluteLibPath,
-  required String packageRoot,
-  required String packageName,
-  required String? className,
-  required String displayLabel,
-  required bool verbose,
-  required GeneratorConfig config,
-  required EmitGenerationUi emit,
-}) async {
-  final ctx = GeneratorRunContext(
-    absoluteLibPath: absoluteLibPath,
-    packageRoot: packageRoot,
-    packageName: packageName,
-    className: className,
-    displayLabel: displayLabel,
-    verbose: verbose,
-    config: config,
-    fs: filesystem,
-    emit: emit,
-  );
-  final outcome = await generator.run(ctx);
-  if (outcome is GeneratorRunCheckMismatch) {
-    return SingleLibraryGenerationResult(checkFailure: outcome.failure);
-  }
-  if (outcome is GeneratorRunSuccess) {
-    return SingleLibraryGenerationResult(stdoutLine: outcome.emitStdoutLine);
-  }
-  return const SingleLibraryGenerationResult();
-}
-
-```
-
-## Файл: .\lib\src\application\snapshot_unit_test_generation.dart
-
-```dart
-import 'package:dart_test_gen/resolved_dependencies.dart';
-import 'package:dart_test_gen/sampling.dart';
-import 'package:dart_test_gen/snapshot.dart';
-import 'package:dart_test_gen/source_parser.dart';
-import 'package:dart_test_gen/test_generator.dart';
-import 'package:path/path.dart' as p;
-
-import '../domain/check_failure.dart';
-import '../domain/generator_module.dart';
-import '../infrastructure/io/io_process_runner.dart';
-import '../ports/generation_filesystem.dart';
-
 /// Invalid user path input when expanding generation targets (CLI prints and exits).
 final class GenerationTargetError implements Exception {
   const GenerationTargetError(this.message, {this.exitCode = 1});
@@ -1088,13 +572,413 @@ final class GenerationTargetError implements Exception {
   String toString() => message;
 }
 
+```
+
+## Файл: .\lib\src\application\exceptions\invalid_cli_arguments_exception.dart
+
+```dart
+/// Thrown when CLI arguments are invalid; the CLI layer should print [message] and exit (e.g. 64).
+final class InvalidCliArgumentsException implements Exception {
+  const InvalidCliArgumentsException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+```
+
+## Файл: .\lib\src\application\generation_isolate_protocol.dart
+
+```dart
+/// Messages from the isolate (sendable types only).
+abstract final class GenerationIsolateProtocol {
+  static const msgProgress = 'p';
+  static const msgVerbose = 'v';
+  static const msgError = 'e';
+  static const msgCheckFail = 'cf';
+  static const msgStdout = 'so';
+
+  /// [isolateDoneSentinel] follows [isolateResultPrefix].
+  static const isolateResultPrefix = '__dart_test_gen_result__';
+  static const isolateDoneSentinel = '__dart_test_gen_isolate_done__';
+}
+
+```
+
+## Файл: .\lib\src\application\isolate_message_spawner.dart
+
+```dart
+import 'dart:isolate';
+
+import 'package:dart_test_gen/dart_test_gen.dart';
+
+final class IsolateMessageSpawner {
+  IsolateMessageSpawner(
+    SingleLibraryGenerator singleLibraryGenerator,
+    SnapshotFailureFormatter snapshotFailureFormatter,
+  )   : _singleLibraryGenerator = singleLibraryGenerator,
+        _snapshotFailureFormatter = snapshotFailureFormatter;
+
+  final SingleLibraryGenerator _singleLibraryGenerator;
+  final SnapshotFailureFormatter _snapshotFailureFormatter;
+
+  Map<String, Object?> spawnMessage({
+    required String absoluteLibPath,
+    required String packageRoot,
+    required String packageName,
+    required String? className,
+    required String displayLabel,
+    required bool verbose,
+    required GeneratorConfig config,
+    required SendPort logPort,
+  }) =>
+      <String, Object?>{
+        'absoluteLibPath': absoluteLibPath,
+        'packageRoot': packageRoot,
+        'packageName': packageName,
+        'className': className,
+        'displayLabel': displayLabel,
+        'verbose': verbose,
+        'config': config,
+        'logPort': logPort,
+      };
+
+  @pragma('vm:entry-point')
+  Future<void> generationIsolateMain(Map<String, Object?> message) async {
+    final path = message['absoluteLibPath']! as String;
+    final root = message['packageRoot']! as String;
+    final pkg = message['packageName']! as String;
+    final className = message['className'] as String?;
+    final displayLabel = message['displayLabel']! as String;
+    final verbose = message['verbose']! as bool;
+    final config = message['config']! as GeneratorConfig;
+    final port = message['logPort']! as SendPort;
+
+    void bridge({double? progress, String? line, bool? error}) {
+      final isErr = error == true;
+      if (progress != null) {
+        port.send(<String, Object?>{
+          't': GenerationIsolateProtocol.msgProgress,
+          'l': displayLabel,
+          'pct': progress,
+        });
+      }
+      if (line != null && (verbose || isErr)) {
+        port.send(<String, Object?>{
+          't': isErr ? GenerationIsolateProtocol.msgError : GenerationIsolateProtocol.msgVerbose,
+          'm': line,
+        });
+      }
+    }
+
+    var ok = false;
+    try {
+      final result = await _singleLibraryGenerator.generateSingleLibraryFile(
+        filesystem: IoGenerationFilesystem(),
+        generator: const SnapshotUnitTestGeneratorModule(),
+        absoluteLibPath: path,
+        packageRoot: root,
+        packageName: pkg,
+        className: className,
+        displayLabel: displayLabel,
+        verbose: verbose,
+        config: config,
+        emit: bridge,
+      );
+      if (result.checkFailure != null) {
+        port.send(<String, Object?>{'t': GenerationIsolateProtocol.msgCheckFail, 's': result.checkFailure!.summary});
+      }
+      final outLine = result.stdoutLine;
+      if (outLine != null) {
+        port.send(<String, Object?>{'t': GenerationIsolateProtocol.msgStdout, 'm': outLine});
+      }
+      ok = true;
+    } on SnapshotRunnerFailure catch (f) {
+      bridge(line: _snapshotFailureFormatter.format(f), error: true);
+    } catch (e, st) {
+      bridge(
+        line: 'ERROR\t$e\n$st\n',
+        error: true,
+      );
+    }
+    port.send('${GenerationIsolateProtocol.isolateResultPrefix}:${ok ? "ok" : "fail"}');
+    port.send(GenerationIsolateProtocol.isolateDoneSentinel);
+  }
+}
+
+```
+
+## Файл: .\lib\src\application\models\cli_result.dart
+
+```dart
+final class CliResult {
+  const CliResult({
+    required this.inputs,
+    this.className,
+    this.verbose = false,
+    this.strategy,
+    this.maxCases,
+    this.seed,
+    this.configPath,
+    this.useCloseForDouble,
+    this.doubleEpsilon,
+    this.useExpectMatchersBoolNull,
+    this.keepRunner,
+    this.dryRun,
+    this.check,
+  });
+
+  final List<String> inputs;
+  final String? className;
+  final bool verbose;
+  final String? strategy;
+  final int? maxCases;
+  final int? seed;
+  final String? configPath;
+  final bool? useCloseForDouble;
+  final double? doubleEpsilon;
+  final bool? useExpectMatchersBoolNull;
+  final bool? keepRunner;
+  final bool? dryRun;
+  final bool? check;
+}
+
+```
+
+## Файл: .\lib\src\application\models\models.dart
+
+```dart
+export 'cli_result.dart';
+export 'single_library_generation_result.dart';
+
+```
+
+## Файл: .\lib\src\application\models\single_library_generation_result.dart
+
+```dart
+import 'package:dart_test_gen/dart_test_gen.dart';
+
+/// Outcome of generating a single library (check diff and optional stdout line, e.g. dry-run path).
+final class SingleLibraryGenerationResult {
+  const SingleLibraryGenerationResult({this.checkFailure, this.stdoutLine});
+
+  final CheckFailure? checkFailure;
+  final String? stdoutLine;
+}
+
+```
+
+## Файл: .\lib\src\application\single_library_generator.dart
+
+```dart
+import 'package:dart_test_gen/dart_test_gen.dart';
+
+class SingleLibraryGenerator {
+  SingleLibraryGenerator();
+
+  /// Runs generation for a single library file via a [GeneratorModule].
+  ///
+  /// Returns a [SingleLibraryGenerationResult] with [SingleLibraryGenerationResult.checkFailure]
+  /// set when `config.check` is true and the generated content differs from the existing test file.
+  Future<SingleLibraryGenerationResult> generateSingleLibraryFile({
+    required GenerationFilesystem filesystem,
+    required GeneratorModule generator,
+    required String absoluteLibPath,
+    required String packageRoot,
+    required String packageName,
+    required String? className,
+    required String displayLabel,
+    required bool verbose,
+    required GeneratorConfig config,
+    required EmitGenerationUi emit,
+  }) async {
+    final ctx = GeneratorRunContext(
+      absoluteLibPath: absoluteLibPath,
+      packageRoot: packageRoot,
+      packageName: packageName,
+      className: className,
+      displayLabel: displayLabel,
+      verbose: verbose,
+      config: config,
+      fs: filesystem,
+      emit: emit,
+    );
+    final outcome = await generator.run(ctx);
+    if (outcome is GeneratorRunCheckMismatch) {
+      return SingleLibraryGenerationResult(checkFailure: outcome.failure);
+    }
+    if (outcome is GeneratorRunSuccess) {
+      return SingleLibraryGenerationResult(stdoutLine: outcome.emitStdoutLine);
+    }
+    return const SingleLibraryGenerationResult();
+  }
+}
+
+```
+
+## Файл: .\lib\src\application\snapshot_runner_execution.dart
+
+```dart
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:dart_test_gen/dart_test_gen.dart';
+import 'package:path/path.dart' as p;
+
+/// Generates the runner source, executes it, and returns snapshots per method.
+///
+/// [onSnapshotFraction] — sub-progress for the snapshot stage only, 0 to 1.
+/// [onVerboseLine] — verbose lines (typically only with `-v`).
+/// [onRunnerFailed] — output when the `dart run` runner process fails (stderr/stdout).
+List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
+  final parsed = ctx.parsed;
+  final packageRoot = ctx.packageRoot;
+  final packageName = ctx.packageName;
+  final absoluteLibPath = ctx.absoluteLibPath;
+  final extraPackageImports = ctx.extraPackageImports;
+  final logLabel = ctx.logLabel;
+  final onSnapshotFraction = ctx.onSnapshotFraction;
+  final onVerboseLine = ctx.onVerboseLine;
+  final onRunnerFailed = ctx.onRunnerFailed;
+  final keepRunner = ctx.keepRunner;
+  final processRunner = ctx.processRunner;
+
+  void sl(String step, String detail) => SnapshotRunHelpers.snapshotVerboseLine(onVerboseLine, logLabel, step, detail);
+
+  void frac(double v) => onSnapshotFraction?.call(v.clamp(0.0, 1.0));
+
+  frac(0);
+
+  final runnerDir = Directory(p.join(Directory.systemTemp.path, 'dart_test_gen'));
+  runnerDir.createSync(recursive: true);
+  final runnerPath = p.join(
+    runnerDir.path,
+    'snapshot_runner_${parsed.className}_${DateTime.now().microsecondsSinceEpoch}.dart',
+  );
+
+  sl('runner', 'writing temporary script…');
+  frac(0.08);
+
+  final source = buildSnapshotRunnerSource(
+    packageRoot: packageRoot,
+    packageName: packageName,
+    absoluteLibPath: absoluteLibPath,
+    extraPackageImports: extraPackageImports,
+    className: parsed.className,
+    methods: parsed.methods,
+    allFileClasses: parsed.allFileClasses,
+  );
+
+  File(runnerPath).writeAsStringSync(source);
+  sl('runner', runnerPath);
+  frac(0.22);
+
+  var success = false;
+  try {
+    sl('process', 'dart run snapshot runner…');
+    frac(0.38);
+    final packageConfig = p.join(packageRoot, '.dart_tool', 'package_config.json');
+    final result = processRunner.runSync(
+      Platform.resolvedExecutable,
+      ['run', '--packages=$packageConfig', runnerPath],
+      workingDirectory: packageRoot,
+      runInShell: false,
+    );
+    if (result.exitCode != 0) {
+      final se = result.stderr;
+      final so = result.stdout;
+      onRunnerFailed?.call(se, so);
+      throw SnapshotRunnerFailure(
+        stage: 'compile',
+        absoluteLibPath: absoluteLibPath,
+        className: parsed.className,
+        runnerPath: runnerPath,
+        dartStderrTail: SnapshotRunHelpers.tailLinesForLog(se.isNotEmpty ? se : so, 40),
+        exitCode: result.exitCode,
+      );
+    }
+    sl('process', 'exit 0, decoding JSON…');
+    frac(0.92);
+    final raw = result.stdout;
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (e) {
+      onRunnerFailed?.call(result.stderr, raw);
+      throw SnapshotRunnerFailure(
+        stage: 'parse',
+        absoluteLibPath: absoluteLibPath,
+        className: parsed.className,
+        runnerPath: runnerPath,
+        dartStderrTail: SnapshotRunHelpers.tailLinesForLog(
+          'jsonDecode failed: $e\nstdout (head):\n${raw.length > 4000 ? raw.substring(0, 4000) : raw}',
+          40,
+        ),
+      );
+    }
+    if (decoded is! List) {
+      onRunnerFailed?.call(result.stderr, raw);
+      throw SnapshotRunnerFailure(
+        stage: 'parse',
+        absoluteLibPath: absoluteLibPath,
+        className: parsed.className,
+        runnerPath: runnerPath,
+        dartStderrTail: SnapshotRunHelpers.tailLinesForLog('expected JSON array, got: $decoded', 40),
+      );
+    }
+    frac(1.0);
+    final merged = mergeDecodedSnapshots(parsed.methods, parsed.allFileClasses, decoded);
+    success = true;
+    return merged;
+  } finally {
+    if (success && !keepRunner) {
+      try {
+        File(runnerPath).deleteSync();
+      } catch (_) {}
+    }
+  }
+}
+
+```
+
+## Файл: .\lib\src\application\snapshot_run_helpers.dart
+
+```dart
+import 'dart:convert';
+
+final class SnapshotRunHelpers {
+  SnapshotRunHelpers();
+
+  /// Keeps only the last [maxLines] lines of [text] (for stderr/stdout tails).
+  static String tailLinesForLog(String text, int maxLines) {
+    final lines = const LineSplitter().convert(text);
+    if (lines.length <= maxLines) return text;
+    return lines.sublist(lines.length - maxLines).join('\n');
+  }
+
+  static void snapshotVerboseLine(void Function(String line)? sink, String label, String step, String detail) =>
+      sink?.call('[$label]\tsnapshot/$step\t$detail\n');
+}
+
+```
+
+## Файл: .\lib\src\application\snapshot_unit_test_generation.dart
+
+```dart
+import 'package:dart_test_gen/dart_test_gen.dart';
+import 'package:path/path.dart' as p;
+
 String buildGenerationCheckSummary(String testPath, String? existingContent, String generatedNormalized) {
   if (existingContent == null) {
     return '[check] differs: $testPath\n  expected: <missing>\n';
   }
+
   final existingLines = existingContent.split('\n');
   final generatedLines = generatedNormalized.split('\n');
   final maxLen = existingLines.length > generatedLines.length ? existingLines.length : generatedLines.length;
+
   for (var i = 0; i < maxLen; i++) {
     final ex = i < existingLines.length ? existingLines[i] : '<EOF>';
     final gen = i < generatedLines.length ? generatedLines[i] : '<EOF>';
@@ -1297,6 +1181,23 @@ Future<GeneratorRunOutcome> runSnapshotUnitTestGeneration(GeneratorRunContext ct
   return GeneratorRunSuccess();
 }
 
+/// Returns mandatory rows + sampled optional rows.
+List<TestCaseRow> sampleTestCases(
+  List<TestCaseRow> rows,
+  MethodConfig cfg,
+) {
+  final mandatory = rows.where((r) => r.throwsType != null).toList();
+  final optional = rows.where((r) => r.throwsType == null).toList();
+
+  final selected = switch (cfg.strategy) {
+    SamplingStrategy.full => truncateOptionalRows(optional, cfg.maxCases),
+    SamplingStrategy.random => randomSampleOptionalRows(optional, cfg.maxCases, cfg.seed),
+    SamplingStrategy.happyPath => optional.take(1).toList(),
+  };
+
+  return [...mandatory, ...selected];
+}
+
 /// `lib/a/b.dart` → `test/a/b_test.dart`
 String testOutputPathForLib(String packageRoot, String absoluteLibPath) {
   final libRoot = p.join(packageRoot, 'lib');
@@ -1369,27 +1270,75 @@ final class SnapshotUnitTestGeneratorModule implements GeneratorModule {
 
 ```
 
+## Файл: .\lib\src\cli\cli.dart
+
+```dart
+export 'cli_dependencies.dart';
+export 'early_exit_handler.dart';
+export 'help.dart';
+export 'log.dart';
+export 'progress.dart';
+export 'snapshot_failure_formatter.dart';
+
+```
+
+## Файл: .\lib\src\cli\cli_dependencies.dart
+
+```dart
+import 'package:dart_test_gen/dart_test_gen.dart';
+
+/// Composition root for CLI presentation (help, early exit, failure formatting).
+final class CliDependencies {
+  CliDependencies({
+    required this.earlyExitHandler,
+    required this.snapshotFailureFormatter,
+  });
+
+  final EarlyExitHandler earlyExitHandler;
+  final SnapshotFailureFormatter snapshotFailureFormatter;
+
+  factory CliDependencies.production() => CliDependencies(
+        earlyExitHandler: EarlyExitHandler(
+          helpText: cliHelpText,
+          resolveVersion: resolveVersion,
+        ),
+        snapshotFailureFormatter: const SnapshotFailureFormatter(),
+      );
+}
+
+```
+
 ## Файл: .\lib\src\cli\early_exit_handler.dart
 
 ```dart
 import 'dart:io';
 
-import '../infrastructure/version_resolver.dart';
-import 'help.dart';
+/// Handles `--help`, `-h`, and `--version` before the main pipeline runs.
+final class EarlyExitHandler {
+  EarlyExitHandler({
+    required this.helpText,
+    required this.resolveVersion,
+    IOSink? stdoutSink,
+  }) : _stdout = stdoutSink ?? stdout;
 
-/// Returns `true` if an early-exit flag was handled (caller should return).
-bool handleEarlyExitFlags(List<String> args) {
-  for (final a in args) {
-    if (a == '--help' || a == '-h') {
-      stdout.write(cliHelpText);
-      return true;
+  final String helpText;
+  final String Function() resolveVersion;
+  final IOSink _stdout;
+
+  /// Returns `true` if an early-exit flag was handled (caller should return).
+  bool handle(List<String> args) {
+    for (final a in args) {
+      if (a == '--help' || a == '-h') {
+        _stdout.write(helpText);
+        return true;
+      }
+      if (a == '--version') {
+        _stdout.writeln(resolveVersion());
+        return true;
+      }
     }
-    if (a == '--version') {
-      stdout.writeln(resolveVersion());
-      return true;
-    }
+    return false;
   }
-  return false;
 }
 
 ```
@@ -1573,35 +1522,40 @@ final class GenerationProgressUi {
 
 ```
 
-## Файл: .\lib\src\cli\snapshot_failure_formatting.dart
+## Файл: .\lib\src\cli\snapshot_failure_formatter.dart
 
 ```dart
-import 'package:dart_test_gen/snapshot.dart';
+import 'package:dart_test_gen/src/domain/models/snapshot_models.dart';
 
 /// Structured, user-facing rendering of a [SnapshotRunnerFailure].
-String formatSnapshotRunnerFailure(SnapshotRunnerFailure f) {
-  final ctx = StringBuffer('[${f.absoluteLibPath}');
-  if (f.className != null) {
-    ctx.write(' ${f.className}');
-    if (f.methodName != null) ctx.write('.${f.methodName}');
-    ctx.write(']');
-  } else {
-    ctx.write(']');
+final class SnapshotFailureFormatter {
+  const SnapshotFailureFormatter();
+
+  String format(SnapshotRunnerFailure failure) {
+    final ctx = StringBuffer('[${failure.absoluteLibPath}');
+    if (failure.className != null) {
+      ctx.write(' ${failure.className}');
+      if (failure.methodName != null) ctx.write('.${failure.methodName}');
+      ctx.write(']');
+    } else {
+      ctx.write(']');
+    }
+    final tail = failure.dartStderrTail.trimRight();
+    final indentedTail =
+        tail.isEmpty ? '    <empty>' : tail.split('\n').map((l) => '    $l').join('\n');
+    return [
+      'Snapshot runner failed (${failure.stage}) for $ctx',
+      '  runner kept at: ${failure.runnerPath}',
+      if (failure.exitCode != null) '  dart exit code: ${failure.exitCode}',
+      '  dart stderr (tail):',
+      indentedTail,
+      '  hints:',
+      '    - re-run with -v for the full log',
+      '    - open the runner file to inspect the generated snapshot code',
+      '    - if this looks like a generator bug, attach the runner file to the report',
+      '',
+    ].join('\n');
   }
-  final tail = f.dartStderrTail.trimRight();
-  final indentedTail = tail.isEmpty ? '    <empty>' : tail.split('\n').map((l) => '    $l').join('\n');
-  return [
-    'Snapshot runner failed (${f.stage}) for $ctx',
-    '  runner kept at: ${f.runnerPath}',
-    if (f.exitCode != null) '  dart exit code: ${f.exitCode}',
-    '  dart stderr (tail):',
-    indentedTail,
-    '  hints:',
-    '    - re-run with -v for the full log',
-    '    - open the runner file to inspect the generated snapshot code',
-    '    - if this looks like a generator bug, attach the runner file to the report',
-    '',
-  ].join('\n');
 }
 
 ```
@@ -1618,13 +1572,50 @@ class CheckFailure {
 
 ```
 
+## Файл: .\lib\src\domain\domain.dart
+
+```dart
+export 'check_failure.dart';
+export 'enums/enums.dart';
+export 'generator_module.dart';
+export 'logic_profile.dart';
+export 'models/models.dart';
+export 'ports/ports.dart';
+export 'services/services.dart';
+
+```
+
+## Файл: .\lib\src\domain\enums\enums.dart
+
+```dart
+export 'sampling_strategy.dart';
+
+```
+
+## Файл: .\lib\src\domain\enums\sampling_strategy.dart
+
+```dart
+enum SamplingStrategy {
+  full, // all possible combinations
+  random, // random selection of several combinations
+  happyPath; // happy paths only (no exceptions)
+
+  static SamplingStrategy fromString(String? value) {
+    return switch (value?.toLowerCase()) {
+      'full' => SamplingStrategy.full,
+      'random' => SamplingStrategy.random,
+      'happy_path' || 'happypath' => SamplingStrategy.happyPath,
+      _ => SamplingStrategy.full,
+    };
+  }
+}
+
+```
+
 ## Файл: .\lib\src\domain\generator_module.dart
 
 ```dart
-import 'package:dart_test_gen/gen_config.dart';
-
-import '../ports/generation_filesystem.dart';
-import 'check_failure.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// UI callback: progress 0–100 and a detail line; [error]==true always goes to stderr.
 typedef EmitGenerationUi = void Function({double? progress, String? line, bool? error});
@@ -1710,7 +1701,132 @@ class LogicProfile {
 
 ```
 
-## Файл: .\lib\src\domain\models\enums.dart
+## Файл: .\lib\src\domain\models\generator_config.dart
+
+```dart
+import 'package:dart_test_gen/dart_test_gen.dart';
+
+class GeneratorConfig {
+  final MethodConfig defaults;
+  final Map<String, MethodConfig> methods;
+  final bool keepRunner;
+
+  /// When true, generation runs but no test files are written; output paths are printed to stdout.
+  final bool dryRun;
+
+  /// When true, generated content is compared to the existing file instead of written.
+  /// Exits with code 1 if any target differs.
+  final bool check;
+
+  const GeneratorConfig({
+    this.defaults = const MethodConfig(),
+    this.methods = const {},
+    this.keepRunner = false,
+    this.dryRun = false,
+    this.check = false,
+  });
+
+  MethodConfig forMethod(String name) => methods[name] ?? defaults;
+}
+
+```
+
+## Файл: .\lib\src\domain\models\method_config.dart
+
+```dart
+import 'package:dart_test_gen/dart_test_gen.dart';
+import 'package:yaml/yaml.dart';
+
+class MethodConfig {
+  final SamplingStrategy strategy;
+  final int maxCases;
+  final int? seed;
+
+  /// When true, successful `double` expectations use `closeTo` with [doubleEpsilon].
+  final bool useCloseForDouble;
+
+  /// Absolute epsilon for `closeTo` (only used when [useCloseForDouble] is true).
+  final double doubleEpsilon;
+
+  /// When true, bool/null snapshot literals emit `isTrue` / `isFalse` / `isNull` instead of `expected` locals.
+  final bool useExpectMatchersBoolNull;
+
+  const MethodConfig({
+    this.strategy = SamplingStrategy.full,
+    this.maxCases = 200,
+    this.seed,
+    this.useCloseForDouble = false,
+    this.doubleEpsilon = 1e-9,
+    this.useExpectMatchersBoolNull = true,
+  });
+
+  factory MethodConfig.fromYaml(YamlMap? yaml, MethodConfig defaults) {
+    if (yaml == null) return defaults;
+
+    final useClose = yaml.containsKey('use_close_for_double')
+        ? (yaml['use_close_for_double'] as bool? ?? defaults.useCloseForDouble)
+        : defaults.useCloseForDouble;
+
+    final epsFromYaml = yaml.containsKey('double_epsilon')
+        ? (yamlScalarToPositiveDouble(yaml['double_epsilon']) ?? defaults.doubleEpsilon)
+        : defaults.doubleEpsilon;
+
+    final useMatchers = yaml.containsKey('use_expect_matchers_bool_null')
+        ? (yaml['use_expect_matchers_bool_null'] as bool? ?? defaults.useExpectMatchersBoolNull)
+        : defaults.useExpectMatchersBoolNull;
+
+    return MethodConfig(
+      strategy:
+          yaml.containsKey('strategy') ? SamplingStrategy.fromString(yaml['strategy'] as String?) : defaults.strategy,
+      maxCases: yaml['max_cases'] as int? ?? defaults.maxCases,
+      seed: yaml['seed'] as int? ?? defaults.seed,
+      useCloseForDouble: useClose,
+      doubleEpsilon: epsFromYaml,
+      useExpectMatchersBoolNull: useMatchers,
+    );
+  }
+
+  /// Parses a finite positive `double` from YAML values (`num`, `String`, etc.).
+  static double? yamlScalarToPositiveDouble(Object? value) {
+    if (value == null) return null;
+    if (value is double) {
+      if (!value.isFinite || value <= 0) return null;
+      return value;
+    }
+    if (value is int) {
+      if (value <= 0) return null;
+      return value.toDouble();
+    }
+    if (value is String) {
+      final d = double.tryParse(value.trim());
+      if (d == null || !d.isFinite || d <= 0) return null;
+      return d;
+    }
+    return null;
+  }
+
+  MethodConfig copyWith({
+    SamplingStrategy? strategy,
+    int? maxCases,
+    int? seed,
+    bool? useCloseForDouble,
+    double? doubleEpsilon,
+    bool? useExpectMatchersBoolNull,
+  }) {
+    return MethodConfig(
+      strategy: strategy ?? this.strategy,
+      maxCases: maxCases ?? this.maxCases,
+      seed: seed ?? this.seed,
+      useCloseForDouble: useCloseForDouble ?? this.useCloseForDouble,
+      doubleEpsilon: doubleEpsilon ?? this.doubleEpsilon,
+      useExpectMatchersBoolNull: useExpectMatchersBoolNull ?? this.useExpectMatchersBoolNull,
+    );
+  }
+}
+
+```
+
+## Файл: .\lib\src\domain\models\method_kind.dart
 
 ```dart
 enum MethodKind {
@@ -1720,6 +1836,25 @@ enum MethodKind {
   operator_,
 }
 
+```
+
+## Файл: .\lib\src\domain\models\models.dart
+
+```dart
+export 'generator_config.dart';
+export 'method_config.dart';
+export 'method_kind.dart';
+export 'param_type.dart';
+export 'parsed_models.dart';
+export 'snapshot_models.dart';
+export 'snapshot_run_context.dart';
+export 'test_models.dart';
+
+```
+
+## Файл: .\lib\src\domain\models\param_type.dart
+
+```dart
 enum ParamType {
   int_,
   double_,
@@ -1739,7 +1874,7 @@ enum ParamType {
 ## Файл: .\lib\src\domain\models\parsed_models.dart
 
 ```dart
-import 'enums.dart';
+import 'method_kind.dart';
 import 'test_models.dart';
 
 /// Description of a method extracted from source (before snapshotting).
@@ -1935,7 +2070,8 @@ String publicExceptionName(
 ## Файл: .\lib\src\domain\models\snapshot_run_context.dart
 
 ```dart
-import '../ports/process_runner.dart';
+import 'package:dart_test_gen/src/domain/ports/process_runner.dart';
+
 import 'parsed_models.dart';
 
 /// Optional callbacks and flags for [runSnapshots].
@@ -1973,7 +2109,7 @@ final class SnapshotRunContext {
 ## Файл: .\lib\src\domain\models\test_models.dart
 
 ```dart
-import 'enums.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 class Param {
   final String name;
@@ -2059,12 +2195,20 @@ class MethodSpec {
 ## Файл: .\lib\src\domain\ports\config_reader.dart
 
 ```dart
-import 'package:dart_test_gen/gen_config.dart';
+import 'package:dart_test_gen/src/domain/models/generator_config.dart';
 
 /// Loads [GeneratorConfig] from disk (YAML) without coupling the domain model to `dart:io`.
 abstract class ConfigReader {
   GeneratorConfig loadConfig(String packageRoot, {String? configPath});
 }
+
+```
+
+## Файл: .\lib\src\domain\ports\ports.dart
+
+```dart
+export 'config_reader.dart';
+export 'process_runner.dart';
 
 ```
 
@@ -2100,8 +2244,7 @@ abstract class ProcessRunner {
 ## Файл: .\lib\src\domain\services\boundary_case_generator.dart
 
 ```dart
-import '../models/enums.dart';
-import '../models/test_models.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 const Map<ParamType, List<String>> kBoundaryValues = {
   ParamType.int_: ['0', '1', '-1', '2', '-2', '10', '-10'],
@@ -2178,8 +2321,7 @@ bool _isValidCombination(List<String> existing, String newVal, List<Param> param
 ## Файл: .\lib\src\domain\services\dynamic_input_generator.dart
 
 ```dart
-import 'package:dart_test_gen/test_generator.dart';
-import '../logic_profile.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 enum StringHint {
   caseSensitive,
@@ -2368,6 +2510,47 @@ class DynamicInputGenerator {
 
 ```
 
+## Файл: .\lib\src\domain\services\sampling_support.dart
+
+```dart
+import 'dart:math';
+
+import 'package:dart_test_gen/src/domain/models/test_models.dart';
+
+List<TestCaseRow> truncateOptionalRows(List<TestCaseRow> rows, int max) {
+  if (rows.length <= max) return rows;
+  return rows.take(max).toList();
+}
+
+List<TestCaseRow> randomSampleOptionalRows(List<TestCaseRow> rows, int max, int? seed) {
+  if (rows.length <= max) return rows;
+
+  final random = Random(seed);
+  final indices = List.generate(rows.length, (i) => i);
+  indices.shuffle(random);
+
+  final selectedIndices = indices.take(max).toList()..sort();
+  return selectedIndices.map((i) => rows[i]).toList();
+}
+
+```
+
+## Файл: .\lib\src\domain\services\services.dart
+
+```dart
+export 'boundary_case_generator.dart';
+export 'dynamic_input_generator.dart';
+export 'sampling_support.dart';
+
+```
+
+## Файл: .\lib\src\infrastructure\analyzer\analyzer.dart
+
+```dart
+export 'library_path_resolver.dart';
+
+```
+
 ## Файл: .\lib\src\infrastructure\analyzer\library_path_resolver.dart
 
 ```dart
@@ -2375,7 +2558,7 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/file_system/physical_file_system.dart';
-import 'package:dart_test_gen/source_parser.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
 
 /// Collects URIs of libraries referenced by types in method signatures (return types and parameters).
@@ -2488,20 +2671,22 @@ Future<List<String>> resolveReferencedLibAbsolutePaths({
 
 ```
 
+## Файл: .\lib\src\infrastructure\ast\ast.dart
+
+```dart
+export 'dart_ast_parser.dart';
+export 'method_logic_analyzer.dart';
+
+```
+
 ## Файл: .\lib\src\infrastructure\ast\dart_ast_parser.dart
 
 ```dart
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:dart_test_gen/test_generator.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
-
-import '../../domain/models/enums.dart';
-import '../../domain/models/parsed_models.dart';
-import '../../domain/models/test_models.dart';
-import '../../domain/services/dynamic_input_generator.dart';
-import 'method_logic_analyzer.dart';
 
 /// Collects `EnumName.variant` literals for every public enum in the file.
 Map<String, List<String>> collectEnumLiterals(CompilationUnit unit) {
@@ -3082,7 +3267,7 @@ ParsedClass parseLibraryClass(
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 
-import '../../domain/logic_profile.dart';
+import 'package:dart_test_gen/src/domain/logic_profile.dart';
 
 /// Analyzes a method body to extract logic-derived test hints.
 class MethodLogicAnalyzer {
@@ -3200,18 +3385,21 @@ class _LogicVisitor extends RecursiveAstVisitor<void> {
 
 ```
 
+## Файл: .\lib\src\infrastructure\codegen\codegen.dart
+
+```dart
+export 'snapshot_runner_generator.dart';
+export 'test_file_renderer.dart';
+
+```
+
 ## Файл: .\lib\src\infrastructure\codegen\snapshot_runner_generator.dart
 
 ```dart
 import 'dart:convert';
 
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
-
-import '../../domain/models/enums.dart';
-import '../../domain/models/parsed_models.dart';
-import '../../domain/models/test_models.dart';
-import '../../domain/services/boundary_case_generator.dart';
-import '../io/package_path_resolver.dart';
 
 String _escapeDartString(String s) {
   return s.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
@@ -3382,8 +3570,7 @@ String buildSnapshotRunnerSource({
   buf.writeln('Future<void> main() async {');
   buf.writeln('  final out = <Map<String, Object?>>[];');
   final receiverInfo = allFileClasses.where((c) => c.name == className).firstOrNull;
-  final receiverExpr =
-      receiverInfo != null ? instantiationExpressionForClass(receiverInfo) : '$className()';
+  final receiverExpr = receiverInfo != null ? instantiationExpressionForClass(receiverInfo) : '$className()';
   buf.writeln('  final c = $receiverExpr;');
   buf.writeln();
 
@@ -3460,8 +3647,7 @@ String buildSnapshotRunnerSource({
 ## Файл: .\lib\src\infrastructure\codegen\test_file_renderer.dart
 
 ```dart
-import '../../domain/models/enums.dart';
-import '../../domain/models/test_models.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// Descriptive `test('…')` titles include the expected value; cap length so runners stay readable.
 const int kMaxDescriptiveTestTitleLength = 220;
@@ -3680,8 +3866,8 @@ $inputs
   final expectLine = useClose
       ? 'expect(actual, closeTo(expected, ${_doubleLiteralForGenerated(spec.doubleEpsilon)}));'
       : matcherSecond != null
-      ? 'expect(actual, $matcherSecond);'
-      : 'expect(actual, expected);';
+          ? 'expect(actual, $matcherSecond);'
+          : 'expect(actual, expected);';
 
   final expectedDecl = (useClose || matcherSecond == null) ? '      final expected = $expected;\n' : '';
 
@@ -3747,6 +3933,7 @@ String generateTestFile({
   required String importPath,
   required List<MethodSpec> methods,
   List<String> extraImports = const [],
+
   /// Receiver constructor call (e.g. `Foo(a: 1)` when named parameters are required).
   String? receiverInstantiation,
 }) {
@@ -3803,16 +3990,21 @@ String stripGeneratedTimestamp(String content) {
 
 ```
 
+## Файл: .\lib\src\infrastructure\config\config.dart
+
+```dart
+export 'config_loader.dart';
+
+```
+
 ## Файл: .\lib\src\infrastructure\config\config_loader.dart
 
 ```dart
 import 'dart:io';
 
-import 'package:dart_test_gen/gen_config.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
-
-import '../../domain/ports/config_reader.dart';
 
 /// YAML-backed [ConfigReader] using `dart:io`.
 final class IoConfigReader implements ConfigReader {
@@ -3858,12 +4050,34 @@ final class IoConfigReader implements ConfigReader {
 
 ```
 
+## Файл: .\lib\src\infrastructure\infrastructure.dart
+
+```dart
+export 'analyzer/analyzer.dart';
+export 'ast/ast.dart';
+export 'codegen/codegen.dart';
+export 'config/config.dart';
+export 'io/io.dart';
+export 'io_generation_filesystem.dart';
+export 'serialization/serialization.dart';
+export 'version_resolver.dart';
+
+```
+
+## Файл: .\lib\src\infrastructure\io\io.dart
+
+```dart
+export 'io_process_runner.dart';
+export 'package_path_resolver.dart';
+
+```
+
 ## Файл: .\lib\src\infrastructure\io\io_process_runner.dart
 
 ```dart
 import 'dart:io';
 
-import '../../domain/ports/process_runner.dart';
+import 'package:dart_test_gen/src/domain/ports/process_runner.dart';
 
 /// [ProcessRunner] backed by [Process.runSync].
 final class IoProcessRunner implements ProcessRunner {
@@ -3948,7 +4162,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import '../ports/generation_filesystem.dart';
+import 'package:dart_test_gen/src/ports/generation_filesystem.dart';
 
 /// Default [GenerationFilesystem] using `dart:io`.
 final class IoGenerationFilesystem implements GenerationFilesystem {
@@ -4000,9 +4214,9 @@ final class IoGenerationFilesystem implements GenerationFilesystem {
 ## Файл: .\lib\src\infrastructure\serialization\json_decoder.dart
 
 ```dart
-import '../../domain/models/parsed_models.dart';
-import '../../domain/models/snapshot_models.dart';
-import '../../domain/services/boundary_case_generator.dart';
+import 'package:dart_test_gen/src/domain/models/parsed_models.dart';
+import 'package:dart_test_gen/src/domain/models/snapshot_models.dart';
+import 'package:dart_test_gen/src/domain/services/boundary_case_generator.dart';
 
 List<MethodSnapshot> mergeDecodedSnapshots(
   List<ParsedMethod> methods,
@@ -4197,6 +4411,13 @@ String dartLiteralFromJsonLoose(dynamic value) {
 
 ```
 
+## Файл: .\lib\src\infrastructure\serialization\serialization.dart
+
+```dart
+export 'json_decoder.dart';
+
+```
+
 ## Файл: .\lib\src\infrastructure\version_resolver.dart
 
 ```dart
@@ -4210,11 +4431,15 @@ String resolveVersion() {
   try {
     final candidates = <String>[];
     final scriptPath = Platform.script.toFilePath();
+    print('scriptPath: $scriptPath');
+
     if (scriptPath.isNotEmpty) {
       candidates.add(p.normalize(p.join(p.dirname(scriptPath), '..', 'pubspec.yaml')));
       candidates.add(p.normalize(p.join(p.dirname(scriptPath), 'pubspec.yaml')));
     }
+
     candidates.add(p.normalize(p.join(Directory.current.path, 'pubspec.yaml')));
+
     for (final c in candidates) {
       final f = File(c);
       if (!f.existsSync()) continue;
@@ -4225,6 +4450,7 @@ String resolveVersion() {
       }
     }
   } catch (_) {}
+
   return 'unknown';
 }
 
@@ -4260,6 +4486,13 @@ abstract class GenerationFilesystem {
 
 ```
 
+## Файл: .\lib\src\ports\ports.dart
+
+```dart
+export 'generation_filesystem.dart';
+
+```
+
 ## Файл: .\lib\src\README.md
 
 ```md
@@ -4292,33 +4525,53 @@ This package keeps **stable** `package:dart_test_gen/<name>.dart` entrypoints at
 ## Internal graph (post–structural cleanup)
 
 - `generate_pipeline.dart` → orchestrator, `gen_config`, `sampling`, `snapshot`, `source_parser`, `test_generator` (boundary), `wiring/app_dependencies`
-- `snapshot.dart` → `SnapshotRunContext`, codegen + JSON merge, `IoProcessRunner`
+- `snapshot.dart` → re-exports `src/barrels/snapshot_api.dart` and `runSnapshots` from `src/application/snapshot_runner_execution.dart`
 - `source_parser.dart` → `infrastructure/ast/dart_ast_parser`, `domain/models/parsed_models`, `infrastructure/io/package_path_resolver`
 - `sampling.dart` → `gen_config`, `test_generator`
 
 After this change, `generate_pipeline.dart` delegates orchestration to `src/application/cli_generation_orchestrator.dart` and snapshot generation to `src/application/snapshot_unit_test_generation.dart`.
+
+## Internal imports (`package:`) and barrels
+
+- **Default:** Any import from one folder under `lib/src/` to another (for example `application/` → `infrastructure/`) SHALL use `package:dart_test_gen/src/...` URIs so paths stay stable when files move.
+- **Same-directory exception:** Imports within the **same directory** MAY stay relative (for example `import 'enums.dart';` next to `test_models.dart`, or `import 'cli_args.dart';` next to `cli_generation_orchestrator.dart`). Do not use long `../../..` chains—switch those to `package:` imports.
+- **Barrels:** Feature- or API-shaped barrels live under `lib/src/barrels/` (for example `snapshot_api.dart`) to group re-exports consumed by public `lib/*.dart` facades. Keep barrels **acyclic** (no barrel re-exporting another barrel that pulls the first back in). Prefer small barrels over one library that re-exports the entire tree.
+- **Public facades:** `lib/*.dart` files SHOULD use `export 'package:dart_test_gen/src/...';` for implementation details they re-expose, matching `lib/snapshot.dart`.
+
+```
+
+## Файл: .\lib\src\src.dart
+
+```dart
+export 'application/application.dart';
+export 'cli/cli.dart';
+export 'domain/domain.dart';
+export 'infrastructure/infrastructure.dart';
+export 'ports/ports.dart';
+export 'wiring/wiring.dart';
 
 ```
 
 ## Файл: .\lib\src\wiring\app_dependencies.dart
 
 ```dart
-import '../application/snapshot_unit_test_generation.dart';
-import '../domain/generator_module.dart';
-import '../domain/ports/config_reader.dart';
-import '../infrastructure/config/config_loader.dart';
-import '../infrastructure/io_generation_filesystem.dart';
-import '../ports/generation_filesystem.dart';
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 /// Composition root: default filesystem and registered generator modules.
 final class AppDependencies {
   AppDependencies({
+    required this.cli,
     required this.filesystem,
+    required this.isolateMessageSpawner,
+    required this.singleLibraryGenerator,
     required this.configReader,
     required List<GeneratorModule> modules,
   }) : modules = List<GeneratorModule>.unmodifiable(modules);
 
+  final CliDependencies cli;
   final GenerationFilesystem filesystem;
+  final IsolateMessageSpawner isolateMessageSpawner;
+  final SingleLibraryGenerator singleLibraryGenerator;
   final ConfigReader configReader;
   final List<GeneratorModule> modules;
 
@@ -4327,9 +4580,19 @@ final class AppDependencies {
 
   /// Production wiring (real I/O, built-in snapshot unit-test generator).
   factory AppDependencies.production() {
+    final cli = CliDependencies.production();
     final fs = IoGenerationFilesystem();
+    final singleLibraryGenerator = SingleLibraryGenerator();
+    final isolateMessageSpawner = IsolateMessageSpawner(
+      singleLibraryGenerator,
+      cli.snapshotFailureFormatter,
+    );
+
     return AppDependencies(
+      cli: cli,
       filesystem: fs,
+      isolateMessageSpawner: isolateMessageSpawner,
+      singleLibraryGenerator: singleLibraryGenerator,
       configReader: const IoConfigReader(),
       modules: const [SnapshotUnitTestGeneratorModule()],
     );
@@ -4338,11 +4601,10 @@ final class AppDependencies {
 
 ```
 
-## Файл: .\lib\test_generator.dart
+## Файл: .\lib\src\wiring\wiring.dart
 
 ```dart
-/// Re-exports [boundary_test_generator] for backward-compatible imports.
-export 'boundary_test_generator.dart';
+export 'app_dependencies.dart';
 
 ```
 

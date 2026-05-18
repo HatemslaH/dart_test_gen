@@ -1,7 +1,10 @@
 export 'cli_args.dart';
 export 'cli_generation_orchestrator.dart';
-export 'generation_isolate.dart';
-export 'generation_single_library.dart';
+export 'exceptions/exceptions.dart';
+export 'generation_isolate_protocol.dart';
+export 'isolate_message_spawner.dart';
+export 'models/models.dart';
+export 'single_library_generator.dart';
 export 'snapshot_run_helpers.dart';
 export 'snapshot_runner_execution.dart';
 export 'snapshot_unit_test_generation.dart';

@@ -1,24 +1,15 @@
 import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
 
-/// Invalid user path input when expanding generation targets (CLI prints and exits).
-final class GenerationTargetError implements Exception {
-  const GenerationTargetError(this.message, {this.exitCode = 1});
-
-  final String message;
-  final int exitCode;
-
-  @override
-  String toString() => message;
-}
-
 String buildGenerationCheckSummary(String testPath, String? existingContent, String generatedNormalized) {
   if (existingContent == null) {
     return '[check] differs: $testPath\n  expected: <missing>\n';
   }
+
   final existingLines = existingContent.split('\n');
   final generatedLines = generatedNormalized.split('\n');
   final maxLen = existingLines.length > generatedLines.length ? existingLines.length : generatedLines.length;
+
   for (var i = 0; i < maxLen; i++) {
     final ex = i < existingLines.length ? existingLines[i] : '<EOF>';
     final gen = i < generatedLines.length ? generatedLines[i] : '<EOF>';

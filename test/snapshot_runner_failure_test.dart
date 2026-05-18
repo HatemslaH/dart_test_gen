@@ -5,7 +5,9 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
-  group('formatSnapshotRunnerFailure', () {
+  const formatter = SnapshotFailureFormatter();
+
+  group('SnapshotFailureFormatter', () {
     test('compile stage message includes header, runner path, tail, and three hints', () {
       final f = SnapshotRunnerFailure(
         stage: 'compile',
@@ -17,7 +19,7 @@ void main() {
         exitCode: 254,
       );
 
-      final s = formatSnapshotRunnerFailure(f);
+      final s = formatter.format(f);
 
       expect(s, contains('Snapshot runner failed (compile)'));
       expect(s, contains(r'lib\foo.dart'));
@@ -41,7 +43,7 @@ void main() {
         dartStderrTail: 'expected JSON array, got: <html>',
       );
 
-      final s = formatSnapshotRunnerFailure(f);
+      final s = formatter.format(f);
 
       expect(s, contains('Snapshot runner failed (parse)'));
       expect(s, contains('X]'));

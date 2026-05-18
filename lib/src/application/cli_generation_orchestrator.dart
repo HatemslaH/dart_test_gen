@@ -5,40 +5,14 @@ import 'dart:isolate';
 import 'package:dart_test_gen/dart_test_gen.dart';
 import 'package:path/path.dart' as p;
 
-EmitGenerationUi _mainThreadEmit({
-  required GenerationProgressUi progressUi,
-  required String displayLabel,
-  required bool verbose,
-}) {
-  return ({double? progress, String? line, bool? error}) {
-    final isErr = error == true;
-    if (progress != null) {
-      progressUi.setPercent(displayLabel, progress);
-    }
-    if (line != null && line.isNotEmpty) {
-      if (isErr) {
-        CliLog.err(line.endsWith('\n') ? line : '$line\n');
-      } else if (verbose) {
-        CliLog.err(line.endsWith('\n') ? line : '$line\n');
-      }
-    }
-  };
-}
-
-bool _isDartUnderLib(String absoluteFile, String packageRoot) {
-  final libRoot = p.normalize(p.join(packageRoot, 'lib'));
-  final file = p.normalize(absoluteFile);
-  return p.isWithin(libRoot, file);
-}
-
 /// CLI orchestration: resolve targets, config, then single-thread or isolate fan-out.
 final class CliGenerationOrchestrator {
-  CliGenerationOrchestrator(this._deps);
+  CliGenerationOrchestrator(AppDependencies deps) : _deps = deps;
 
   final AppDependencies _deps;
 
   Future<void> run(List<String> args) async {
-    final parsedArgs;
+    final CliResult parsedArgs;
     try {
       parsedArgs = CliArgs.parseCliArgs(args);
     } on InvalidCliArgumentsException catch (e) {
@@ -132,7 +106,7 @@ final class CliGenerationOrchestrator {
       final label = labels.first;
       late final SingleLibraryGenerationResult genResult;
       try {
-        genResult = await generateSingleLibraryFile(
+        genResult = await _deps.singleLibraryGenerator.generateSingleLibraryFile(
           filesystem: _deps.filesystem,
           generator: _deps.defaultGenerator,
           absoluteLibPath: targets.first,
@@ -146,7 +120,7 @@ final class CliGenerationOrchestrator {
         );
       } on SnapshotRunnerFailure catch (f) {
         ui.finish();
-        CliLog.err(formatSnapshotRunnerFailure(f));
+        CliLog.err(_deps.cli.snapshotFailureFormatter.format(f));
         exit(1);
       } catch (e, st) {
         ui.finish();
@@ -213,12 +187,12 @@ final class CliGenerationOrchestrator {
           }
           return;
         }
-        if (message is String && message.startsWith(isolateResultPrefix)) {
+        if (message is String && message.startsWith(GenerationIsolateProtocol.isolateResultPrefix)) {
           success = message.endsWith(':ok');
           sawResult = true;
           return;
         }
-        if (message == isolateDoneSentinel) {
+        if (message == GenerationIsolateProtocol.isolateDoneSentinel) {
           if (!doneSent) {
             doneSent = true;
             if (!sawResult) {
@@ -238,7 +212,7 @@ final class CliGenerationOrchestrator {
         receivePort.close();
       }));
 
-      final isolateMessage = generationIsolateSpawnMessage(
+      final isolateMessage = _deps.isolateMessageSpawner.spawnMessage(
         absoluteLibPath: libAbs,
         packageRoot: packageRoot,
         packageName: packageName,
@@ -250,7 +224,7 @@ final class CliGenerationOrchestrator {
       );
 
       await Isolate.spawn(
-        generationIsolateMain,
+        _deps.isolateMessageSpawner.generationIsolateMain,
         isolateMessage,
         errorsAreFatal: false,
         debugName: p.basename(libAbs),
@@ -280,5 +254,30 @@ final class CliGenerationOrchestrator {
       CliLog.err('[check] ${checkFailureSummaries.length} file(s) differ');
       exit(1);
     }
+  }
+
+  EmitGenerationUi _mainThreadEmit({
+    required GenerationProgressUi progressUi,
+    required String displayLabel,
+    required bool verbose,
+  }) =>
+      ({double? progress, String? line, bool? error}) {
+        final isErr = error == true;
+        if (progress != null) {
+          progressUi.setPercent(displayLabel, progress);
+        }
+        if (line != null && line.isNotEmpty) {
+          if (isErr) {
+            CliLog.err(line.endsWith('\n') ? line : '$line\n');
+          } else if (verbose) {
+            CliLog.err(line.endsWith('\n') ? line : '$line\n');
+          }
+        }
+      };
+
+  bool _isDartUnderLib(String absoluteFile, String packageRoot) {
+    final libRoot = p.normalize(p.join(packageRoot, 'lib'));
+    final file = p.normalize(absoluteFile);
+    return p.isWithin(libRoot, file);
   }
 }

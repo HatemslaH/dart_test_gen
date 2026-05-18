@@ -22,7 +22,7 @@ List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
   final keepRunner = ctx.keepRunner;
   final processRunner = ctx.processRunner;
 
-  void sl(String step, String detail) => snapshotVerboseLine(onVerboseLine, logLabel, step, detail);
+  void sl(String step, String detail) => SnapshotRunHelpers.snapshotVerboseLine(onVerboseLine, logLabel, step, detail);
 
   void frac(double v) => onSnapshotFraction?.call(v.clamp(0.0, 1.0));
 
@@ -72,7 +72,7 @@ List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
         absoluteLibPath: absoluteLibPath,
         className: parsed.className,
         runnerPath: runnerPath,
-        dartStderrTail: tailLinesForLog(se.isNotEmpty ? se : so, 40),
+        dartStderrTail: SnapshotRunHelpers.tailLinesForLog(se.isNotEmpty ? se : so, 40),
         exitCode: result.exitCode,
       );
     }
@@ -89,7 +89,7 @@ List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
         absoluteLibPath: absoluteLibPath,
         className: parsed.className,
         runnerPath: runnerPath,
-        dartStderrTail: tailLinesForLog(
+        dartStderrTail: SnapshotRunHelpers.tailLinesForLog(
           'jsonDecode failed: $e\nstdout (head):\n${raw.length > 4000 ? raw.substring(0, 4000) : raw}',
           40,
         ),
@@ -102,7 +102,7 @@ List<MethodSnapshot> runSnapshots(SnapshotRunContext ctx) {
         absoluteLibPath: absoluteLibPath,
         className: parsed.className,
         runnerPath: runnerPath,
-        dartStderrTail: tailLinesForLog('expected JSON array, got: $decoded', 40),
+        dartStderrTail: SnapshotRunHelpers.tailLinesForLog('expected JSON array, got: $decoded', 40),
       );
     }
     frac(1.0);

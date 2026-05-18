@@ -14,31 +14,37 @@ String _readPubspecVersion() {
 }
 
 void main() {
-  group('handleEarlyExitFlags — recognized flags return true', () {
+  late EarlyExitHandler earlyExitHandler;
+
+  setUp(() {
+    earlyExitHandler = CliDependencies.production().earlyExitHandler;
+  });
+
+  group('EarlyExitHandler — recognized flags return true', () {
     test('--help returns true', () {
-      expect(handleEarlyExitFlags(['--help']), isTrue);
+      expect(earlyExitHandler.handle(['--help']), isTrue);
     });
 
     test('-h returns true', () {
-      expect(handleEarlyExitFlags(['-h']), isTrue);
+      expect(earlyExitHandler.handle(['-h']), isTrue);
     });
 
     test('--version returns true', () {
-      expect(handleEarlyExitFlags(['--version']), isTrue);
+      expect(earlyExitHandler.handle(['--version']), isTrue);
     });
   });
 
-  group('handleEarlyExitFlags — non-early-exit returns false', () {
+  group('EarlyExitHandler — non-early-exit returns false', () {
     test('lib/foo.dart returns false', () {
-      expect(handleEarlyExitFlags(['lib/foo.dart']), isFalse);
+      expect(earlyExitHandler.handle(['lib/foo.dart']), isFalse);
     });
 
     test('empty args returns false', () {
-      expect(handleEarlyExitFlags([]), isFalse);
+      expect(earlyExitHandler.handle([]), isFalse);
     });
 
     test('--strategy flag returns false', () {
-      expect(handleEarlyExitFlags(['--strategy', 'full']), isFalse);
+      expect(earlyExitHandler.handle(['--strategy', 'full']), isFalse);
     });
   });
 

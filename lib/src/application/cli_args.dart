@@ -1,32 +1,10 @@
-/// Thrown when CLI arguments are invalid; the CLI layer should print [message] and exit (e.g. 64).
-final class InvalidCliArgumentsException implements Exception {
-  const InvalidCliArgumentsException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
+import 'package:dart_test_gen/dart_test_gen.dart';
 
 final class CliArgs {
   CliArgs();
 
   /// Parses CLI arguments: paths, `--class`, `-v`/`--verbose`, sampling flags, and mode flags.
-  static ({
-    List<String> inputs,
-    String? className,
-    bool verbose,
-    String? strategy,
-    int? maxCases,
-    int? seed,
-    String? configPath,
-    bool? useCloseForDouble,
-    double? doubleEpsilon,
-    bool? useExpectMatchersBoolNull,
-    bool? keepRunner,
-    bool? dryRun,
-    bool? check,
-  }) parseCliArgs(List<String> args) {
+  static CliResult parseCliArgs(List<String> args) {
     String? className;
     var verbose = false;
     String? strategy;
@@ -98,7 +76,8 @@ final class CliArgs {
         '  --config <path>                 path to config file (default: dart_test_gen.yaml).',
       );
     }
-    return (
+
+    return CliResult(
       inputs: rest,
       className: className,
       verbose: verbose,

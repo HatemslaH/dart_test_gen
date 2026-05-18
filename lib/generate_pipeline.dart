@@ -48,7 +48,9 @@ final class GeneratePipeline {
       );
 
   /// CLI entry: parse args, load config, run registered generator module(s).
-  static Future<void> generateFromCli(List<String> args) async {
-    await CliGenerationOrchestrator(AppDependencies.production()).run(args);
-  }
+  static Future<void> generateFromCli(
+    List<String> args, {
+    AppDependencies? dependencies,
+  }) async =>
+      await CliGenerationOrchestrator(dependencies ?? AppDependencies.production()).run(args);
 }
