@@ -1,20 +1,26 @@
+import 'package:dart_test_gen/src/application/cli_args.dart';
 import 'package:test/test.dart';
-import 'package:dart_test_gen/generate_pipeline.dart';
 
 void main() {
   group('parseCliArgs — all flags', () {
     test('parses every documented flag into the correct record field', () {
-      final result = parseCliArgs([
+      final result = CliArgs.parseCliArgs([
         'lib/foo.dart',
-        '--class', 'Foo',
+        '--class',
+        'Foo',
         '-v',
-        '--strategy', 'random',
-        '--max-cases', '5',
-        '--seed', '7',
+        '--strategy',
+        'random',
+        '--max-cases',
+        '5',
+        '--seed',
+        '7',
         '--use-close-for-double',
-        '--double-epsilon', '1e-6',
+        '--double-epsilon',
+        '1e-6',
         '--expect-matchers-bool-null',
-        '--config', 'cfg.yaml',
+        '--config',
+        'cfg.yaml',
         '--keep-runner',
       ]);
       expect(result.inputs, ['lib/foo.dart']);
@@ -31,14 +37,14 @@ void main() {
     });
 
     test('--verbose long form sets verbose = true', () {
-      final result = parseCliArgs(['lib/foo.dart', '--verbose']);
+      final result = CliArgs.parseCliArgs(['lib/foo.dart', '--verbose']);
       expect(result.verbose, isTrue);
     });
   });
 
   group('parseCliArgs — defaults when flags absent', () {
     test('optional fields are null or false when not provided', () {
-      final result = parseCliArgs(['lib/foo.dart']);
+      final result = CliArgs.parseCliArgs(['lib/foo.dart']);
       expect(result.inputs, ['lib/foo.dart']);
       expect(result.className, isNull);
       expect(result.verbose, isFalse);
@@ -55,18 +61,18 @@ void main() {
 
   group('parseCliArgs — expect matcher flags', () {
     test('--no-expect-matchers-bool-null sets false', () {
-      final r = parseCliArgs(['lib/x.dart', '--no-expect-matchers-bool-null']);
+      final r = CliArgs.parseCliArgs(['lib/x.dart', '--no-expect-matchers-bool-null']);
       expect(r.useExpectMatchersBoolNull, isFalse);
     });
 
     test('last flag wins when both are present', () {
-      final offLast = parseCliArgs([
+      final offLast = CliArgs.parseCliArgs([
         'lib/x.dart',
         '--expect-matchers-bool-null',
         '--no-expect-matchers-bool-null',
       ]);
       expect(offLast.useExpectMatchersBoolNull, isFalse);
-      final onLast = parseCliArgs([
+      final onLast = CliArgs.parseCliArgs([
         'lib/x.dart',
         '--no-expect-matchers-bool-null',
         '--expect-matchers-bool-null',
@@ -77,12 +83,12 @@ void main() {
 
   group('parseCliArgs — multiple inputs', () {
     test('collects all non-flag args as inputs', () {
-      final result = parseCliArgs(['lib/a.dart', 'lib/b.dart', 'lib/c.dart']);
+      final result = CliArgs.parseCliArgs(['lib/a.dart', 'lib/b.dart', 'lib/c.dart']);
       expect(result.inputs, ['lib/a.dart', 'lib/b.dart', 'lib/c.dart']);
     });
 
     test('inputs and flags can be interleaved', () {
-      final result = parseCliArgs(['lib/a.dart', '--strategy', 'full', 'lib/b.dart']);
+      final result = CliArgs.parseCliArgs(['lib/a.dart', '--strategy', 'full', 'lib/b.dart']);
       expect(result.inputs, ['lib/a.dart', 'lib/b.dart']);
       expect(result.strategy, 'full');
     });

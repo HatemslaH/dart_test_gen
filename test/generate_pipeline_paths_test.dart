@@ -1,8 +1,8 @@
 import 'dart:io';
 
+import 'package:dart_test_gen/generate_pipeline.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
-import 'package:dart_test_gen/generate_pipeline.dart';
 
 void main() {
   group('testOutputPathForLib', () {
@@ -10,20 +10,20 @@ void main() {
       final root = p.normalize('/tmp/pkg');
       final libPath = p.normalize('/tmp/pkg/lib/a/b.dart');
       final expected = p.normalize('/tmp/pkg/test/a/b_test.dart');
-      expect(testOutputPathForLib(root, libPath), expected);
+      expect(GeneratePipeline.testOutputPathForLib(root, libPath), expected);
     });
 
     test('top-level lib file maps to top-level test/', () {
       final root = p.normalize('/tmp/pkg');
       final libPath = p.normalize('/tmp/pkg/lib/foo.dart');
       final expected = p.normalize('/tmp/pkg/test/foo_test.dart');
-      expect(testOutputPathForLib(root, libPath), expected);
+      expect(GeneratePipeline.testOutputPathForLib(root, libPath), expected);
     });
 
     test('throws StateError for path outside lib/', () {
       final root = p.normalize('/tmp/pkg');
       final outside = p.normalize('/tmp/pkg/bin/tool.dart');
-      expect(() => testOutputPathForLib(root, outside), throwsStateError);
+      expect(() => GeneratePipeline.testOutputPathForLib(root, outside), throwsStateError);
     });
   });
 
@@ -31,14 +31,14 @@ void main() {
     test('returns forward-slash path relative to lib/', () {
       final root = p.normalize('/tmp/pkg');
       final libPath = p.normalize('/tmp/pkg/lib/foo/bar.dart');
-      expect(shortLibLabel(libPath, root), 'foo/bar.dart');
+      expect(GeneratePipeline.shortLibLabel(libPath, root), 'foo/bar.dart');
     });
 
     test('does not include lib/ root in result for path under lib/', () {
       // Result should only contain the path fragment after lib/, not the full path
       final root = p.normalize('/tmp/pkg');
       final libPath = p.normalize('/tmp/pkg/lib/util.dart');
-      final label = shortLibLabel(libPath, root);
+      final label = GeneratePipeline.shortLibLabel(libPath, root);
       expect(label, isNot(contains('/tmp/')));
       expect(label, isNot(contains('lib/')));
     });
@@ -61,7 +61,7 @@ void main() {
       File(p.join(tempDir.path, 'sub', 'b.dart')).writeAsStringSync('');
       File(p.join(tempDir.path, 'c.txt')).writeAsStringSync('');
 
-      final result = dartFilesUnderDirectory(tempDir.path);
+      final result = GeneratePipeline.dartFilesUnderDirectory(tempDir.path);
       expect(result, hasLength(2));
       expect(result.any((f) => f.endsWith('a.dart')), isTrue);
       expect(result.any((f) => f.endsWith('b.dart')), isTrue);
@@ -69,13 +69,13 @@ void main() {
     });
 
     test('returns empty list for non-existent directory', () {
-      expect(dartFilesUnderDirectory(p.join(tempDir.path, 'nonexistent')), isEmpty);
+      expect(GeneratePipeline.dartFilesUnderDirectory(p.join(tempDir.path, 'nonexistent')), isEmpty);
     });
 
     test('result is sorted', () {
       File(p.join(tempDir.path, 'z.dart')).writeAsStringSync('');
       File(p.join(tempDir.path, 'a.dart')).writeAsStringSync('');
-      final result = dartFilesUnderDirectory(tempDir.path);
+      final result = GeneratePipeline.dartFilesUnderDirectory(tempDir.path);
       final sorted = List<String>.from(result)..sort();
       expect(result, sorted);
     });
@@ -94,21 +94,21 @@ void main() {
 
     test('expands a single .dart file to absolute path', () {
       final file = File(p.join(tempDir.path, 'foo.dart'))..writeAsStringSync('');
-      final result = expandGenerationTargets(tempDir.path, ['foo.dart']);
+      final result = GeneratePipeline.expandGenerationTargets(tempDir.path, ['foo.dart']);
       expect(result, [p.normalize(file.path)]);
     });
 
     test('expands a directory to all .dart files inside', () {
       File(p.join(tempDir.path, 'a.dart')).writeAsStringSync('');
       File(p.join(tempDir.path, 'b.dart')).writeAsStringSync('');
-      final result = expandGenerationTargets(tempDir.path, ['.']);
+      final result = GeneratePipeline.expandGenerationTargets(tempDir.path, ['.']);
       expect(result, hasLength(2));
     });
 
     test('deduplicates paths', () {
       final file = File(p.join(tempDir.path, 'foo.dart'))..writeAsStringSync('');
       final abs = p.normalize(file.path);
-      final result = expandGenerationTargets(tempDir.path, ['foo.dart', abs]);
+      final result = GeneratePipeline.expandGenerationTargets(tempDir.path, ['foo.dart', abs]);
       expect(result, hasLength(1));
     });
   });

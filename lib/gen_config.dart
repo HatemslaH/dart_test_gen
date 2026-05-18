@@ -3,25 +3,6 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
-/// Parses a finite positive `double` from YAML values (`num`, `String`, etc.).
-double? yamlScalarToPositiveDouble(Object? value) {
-  if (value == null) return null;
-  if (value is double) {
-    if (!value.isFinite || value <= 0) return null;
-    return value;
-  }
-  if (value is int) {
-    if (value <= 0) return null;
-    return value.toDouble();
-  }
-  if (value is String) {
-    final d = double.tryParse(value.trim());
-    if (d == null || !d.isFinite || d <= 0) return null;
-    return d;
-  }
-  return null;
-}
-
 enum SamplingStrategy {
   full, // all possible combinations
   random, // random selection of several combinations
@@ -84,6 +65,25 @@ class MethodConfig {
       doubleEpsilon: epsFromYaml,
       useExpectMatchersBoolNull: useMatchers,
     );
+  }
+
+  /// Parses a finite positive `double` from YAML values (`num`, `String`, etc.).
+  static double? yamlScalarToPositiveDouble(Object? value) {
+    if (value == null) return null;
+    if (value is double) {
+      if (!value.isFinite || value <= 0) return null;
+      return value;
+    }
+    if (value is int) {
+      if (value <= 0) return null;
+      return value.toDouble();
+    }
+    if (value is String) {
+      final d = double.tryParse(value.trim());
+      if (d == null || !d.isFinite || d <= 0) return null;
+      return d;
+    }
+    return null;
   }
 
   MethodConfig copyWith({

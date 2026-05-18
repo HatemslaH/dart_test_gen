@@ -1,7 +1,7 @@
 import 'dart:io';
 
+import 'package:dart_test_gen/cli/cli_help.dart';
 import 'package:test/test.dart';
-import 'package:dart_test_gen/cli_help.dart';
 
 String _readPubspecVersion() {
   final f = File('pubspec.yaml');

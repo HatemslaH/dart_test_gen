@@ -47,8 +47,7 @@ methods:
       final defaults = MethodConfig.fromYaml(yaml, const MethodConfig());
       final methodsYaml = yaml['methods'] as YamlMap;
       final methods = <String, MethodConfig>{
-        for (final e in methodsYaml.entries)
-          e.key as String: MethodConfig.fromYaml(e.value as YamlMap?, defaults),
+        for (final e in methodsYaml.entries) e.key as String: MethodConfig.fromYaml(e.value as YamlMap?, defaults),
       };
       final cfg = GeneratorConfig(defaults: defaults, methods: methods);
 
@@ -67,8 +66,7 @@ methods:
       final defaults = MethodConfig.fromYaml(yaml, const MethodConfig());
       final methodsYaml = yaml['methods'] as YamlMap;
       final methods = <String, MethodConfig>{
-        for (final e in methodsYaml.entries)
-          e.key as String: MethodConfig.fromYaml(e.value as YamlMap?, defaults),
+        for (final e in methodsYaml.entries) e.key as String: MethodConfig.fromYaml(e.value as YamlMap?, defaults),
       };
       final cfg = GeneratorConfig(defaults: defaults, methods: methods);
 
@@ -79,9 +77,9 @@ methods:
 
   group('yamlScalarToPositiveDouble', () {
     test('accepts int and string', () {
-      expect(yamlScalarToPositiveDouble(3), 3.0);
-      expect(yamlScalarToPositiveDouble('2.5'), 2.5);
-      expect(yamlScalarToPositiveDouble(0), isNull);
+      expect(MethodConfig.yamlScalarToPositiveDouble(3), 3.0);
+      expect(MethodConfig.yamlScalarToPositiveDouble('2.5'), 2.5);
+      expect(MethodConfig.yamlScalarToPositiveDouble(0), isNull);
     });
   });
 }

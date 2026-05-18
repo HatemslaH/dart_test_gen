@@ -26,48 +26,55 @@ export 'src/domain/generator_module.dart'
         GeneratorRunSuccess,
         kDefaultGeneratorModuleId;
 
-/// All `.dart` files under [dirAbs] (recursive), using the default I/O filesystem.
-List<String> dartFilesUnderDirectory(String dirAbs) => IoGenerationFilesystem().dartFilesUnderDirectory(dirAbs);
+final class GeneratePipeline {
+  GeneratePipeline();
 
-/// Expands files and directories into a sorted list of absolute `.dart` paths (default I/O).
-List<String> expandGenerationTargets(String cwd, List<String> inputs) =>
-    snap.expandGenerationTargetsWithFs(IoGenerationFilesystem(), cwd, inputs);
+  /// All `.dart` files under [dirAbs] (recursive), using the default I/O filesystem.
+  static List<String> dartFilesUnderDirectory(String dirAbs) =>
+      IoGenerationFilesystem().dartFilesUnderDirectory(dirAbs);
 
-/// `lib/a/b.dart` → `test/a/b_test.dart`
-String testOutputPathForLib(String packageRoot, String absoluteLibPath) => snap.testOutputPathForLib(packageRoot, absoluteLibPath);
+  /// Expands files and directories into a sorted list of absolute `.dart` paths (default I/O).
+  static List<String> expandGenerationTargets(String cwd, List<String> inputs) =>
+      snap.expandGenerationTargetsWithFs(IoGenerationFilesystem(), cwd, inputs);
 
-String shortLibLabel(String absoluteLibPath, String packageRoot) => snap.shortLibLabel(absoluteLibPath, packageRoot);
+  /// `lib/a/b.dart` → `test/a/b_test.dart`
+  static String testOutputPathForLib(String packageRoot, String absoluteLibPath) =>
+      snap.testOutputPathForLib(packageRoot, absoluteLibPath);
 
-/// Runs generation for a single library file.
-///
-/// Uses [filesystem] / [generator] when provided; otherwise default I/O and the
-/// built-in snapshot unit-test module.
-Future<CheckFailure?> generateSingleLibraryFile({
-  required String absoluteLibPath,
-  required String packageRoot,
-  required String packageName,
-  required String? className,
-  required String displayLabel,
-  required bool verbose,
-  required GeneratorConfig config,
-  required EmitGenerationUi emit,
-  GenerationFilesystem? filesystem,
-  GeneratorModule? generator,
-}) =>
-    gen_single.generateSingleLibraryFile(
-      filesystem: filesystem ?? IoGenerationFilesystem(),
-      generator: generator ?? const SnapshotUnitTestGeneratorModule(),
-      absoluteLibPath: absoluteLibPath,
-      packageRoot: packageRoot,
-      packageName: packageName,
-      className: className,
-      displayLabel: displayLabel,
-      verbose: verbose,
-      config: config,
-      emit: emit,
-    );
+  static String shortLibLabel(String absoluteLibPath, String packageRoot) =>
+      snap.shortLibLabel(absoluteLibPath, packageRoot);
 
-/// CLI entry: parse args, load config, run registered generator module(s).
-Future<void> generateFromCli(List<String> args) async {
-  await CliGenerationOrchestrator(AppDependencies.production()).run(args);
+  /// Runs generation for a single library file.
+  ///
+  /// Uses [filesystem] / [generator] when provided; otherwise default I/O and the
+  /// built-in snapshot unit-test module.
+  static Future<CheckFailure?> generateSingleLibraryFile({
+    required String absoluteLibPath,
+    required String packageRoot,
+    required String packageName,
+    required String? className,
+    required String displayLabel,
+    required bool verbose,
+    required GeneratorConfig config,
+    required EmitGenerationUi emit,
+    GenerationFilesystem? filesystem,
+    GeneratorModule? generator,
+  }) =>
+      gen_single.generateSingleLibraryFile(
+        filesystem: filesystem ?? IoGenerationFilesystem(),
+        generator: generator ?? const SnapshotUnitTestGeneratorModule(),
+        absoluteLibPath: absoluteLibPath,
+        packageRoot: packageRoot,
+        packageName: packageName,
+        className: className,
+        displayLabel: displayLabel,
+        verbose: verbose,
+        config: config,
+        emit: emit,
+      );
+
+  /// CLI entry: parse args, load config, run registered generator module(s).
+  static Future<void> generateFromCli(List<String> args) async {
+    await CliGenerationOrchestrator(AppDependencies.production()).run(args);
+  }
 }

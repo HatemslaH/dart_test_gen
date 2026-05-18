@@ -2,13 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:path/path.dart' as p;
-
-import 'package:dart_test_gen/cli_log.dart';
-import 'package:dart_test_gen/cli_progress.dart';
+import 'package:dart_test_gen/cli/cli_log.dart';
+import 'package:dart_test_gen/cli/cli_progress.dart';
 import 'package:dart_test_gen/gen_config.dart';
 import 'package:dart_test_gen/snapshot.dart';
 import 'package:dart_test_gen/source_parser.dart';
+import 'package:path/path.dart' as p;
 
 import '../domain/check_failure.dart';
 import '../domain/generator_module.dart';
@@ -52,7 +51,7 @@ final class CliGenerationOrchestrator {
   final AppDependencies _deps;
 
   Future<void> run(List<String> args) async {
-    final parsedArgs = parseCliArgs(args);
+    final parsedArgs = CliArgs.parseCliArgs(args);
     final cwd = _deps.filesystem.currentWorkingDirectory;
     var targets = expandGenerationTargetsWithFs(_deps.filesystem, cwd, parsedArgs.inputs);
 
