@@ -4,7 +4,7 @@ import 'package:example/usecases/async_showcase/priority.dart';
 import 'package:example/usecases/async_showcase/task_result.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-14T16:02:43.484909
+// Generated: 2026-05-18T16:09:53.556109
 
 void main() {
   final asyncshowcase = AsyncShowcase();

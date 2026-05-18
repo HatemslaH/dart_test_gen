@@ -1,6 +1,12 @@
-import 'dart:io';
+/// Thrown when CLI arguments are invalid; the CLI layer should print [message] and exit (e.g. 64).
+final class InvalidCliArgumentsException implements Exception {
+  const InvalidCliArgumentsException(this.message);
 
-import 'package:dart_test_gen/cli/cli_log.dart';
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 final class CliArgs {
   CliArgs();
@@ -67,8 +73,9 @@ final class CliArgs {
         final raw = args[++i];
         final parsed = double.tryParse(raw);
         if (parsed == null || !parsed.isFinite || parsed <= 0) {
-          CliLog.err('--double-epsilon: expected a finite number > 0, got: $raw');
-          exit(64);
+          throw InvalidCliArgumentsException(
+            '--double-epsilon: expected a finite number > 0, got: $raw',
+          );
         }
         doubleEpsilon = parsed;
       } else {
@@ -76,7 +83,7 @@ final class CliArgs {
       }
     }
     if (rest.isEmpty) {
-      CliLog.err(
+      throw InvalidCliArgumentsException(
         'Usage: dart run dart_test_gen <path> [path …] [options]\n'
         'Options:\n'
         '  --class <Name>                  only when targets reduce to a single .dart file after filtering.\n'
@@ -90,7 +97,6 @@ final class CliArgs {
         '  --no-expect-matchers-bool-null  classic final expected + expect(actual, expected).\n'
         '  --config <path>                 path to config file (default: dart_test_gen.yaml).',
       );
-      exit(64);
     }
     return (
       inputs: rest,

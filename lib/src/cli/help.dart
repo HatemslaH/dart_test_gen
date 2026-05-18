@@ -1,8 +1,3 @@
-import 'dart:io';
-
-import 'package:path/path.dart' as p;
-import 'package:yaml/yaml.dart';
-
 const String cliHelpText = '''
 dart_test_gen — snapshot-based unit test generator for Dart.
 
@@ -33,40 +28,3 @@ Options:
   -h, --help                       show this help and exit.
   --version                        print the package version and exit.
 ''';
-
-String resolveVersion() {
-  try {
-    final candidates = <String>[];
-    final scriptPath = Platform.script.toFilePath();
-    if (scriptPath.isNotEmpty) {
-      candidates.add(p.normalize(p.join(p.dirname(scriptPath), '..', 'pubspec.yaml')));
-      candidates.add(p.normalize(p.join(p.dirname(scriptPath), 'pubspec.yaml')));
-    }
-    candidates.add(p.normalize(p.join(Directory.current.path, 'pubspec.yaml')));
-    for (final c in candidates) {
-      final f = File(c);
-      if (!f.existsSync()) continue;
-      final yaml = loadYaml(f.readAsStringSync());
-      if (yaml is YamlMap) {
-        final v = yaml['version'];
-        if (v is String && v.trim().isNotEmpty) return v.trim();
-      }
-    }
-  } catch (_) {}
-  return 'unknown';
-}
-
-/// Returns `true` if an early-exit flag was handled (caller should return).
-bool handleEarlyExitFlags(List<String> args) {
-  for (final a in args) {
-    if (a == '--help' || a == '-h') {
-      stdout.write(cliHelpText);
-      return true;
-    }
-    if (a == '--version') {
-      stdout.writeln(resolveVersion());
-      return true;
-    }
-  }
-  return false;
-}

@@ -3,10 +3,10 @@ import 'dart:isolate';
 import 'package:dart_test_gen/gen_config.dart';
 import 'package:dart_test_gen/snapshot.dart';
 
-import '../generators/snapshot_unit_test_generator_module.dart';
+import 'snapshot_unit_test_generation.dart';
 import '../infrastructure/io_generation_filesystem.dart';
 import 'generation_single_library.dart';
-import 'snapshot_failure_formatting.dart';
+import '../cli/snapshot_failure_formatting.dart';
 
 /// Messages from the isolate (sendable types only).
 abstract final class GenerationIsolateProtocol {
@@ -14,6 +14,7 @@ abstract final class GenerationIsolateProtocol {
   static const msgVerbose = 'v';
   static const msgError = 'e';
   static const msgCheckFail = 'cf';
+  static const msgStdout = 'so';
 }
 
 /// [isolateDoneSentinel] follows [isolateResultPrefix].
@@ -71,7 +72,7 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
 
   var ok = false;
   try {
-    final checkFailure = await generateSingleLibraryFile(
+    final result = await generateSingleLibraryFile(
       filesystem: IoGenerationFilesystem(),
       generator: const SnapshotUnitTestGeneratorModule(),
       absoluteLibPath: path,
@@ -83,8 +84,12 @@ Future<void> generationIsolateMain(Map<String, Object?> message) async {
       config: config,
       emit: bridge,
     );
-    if (checkFailure != null) {
-      port.send(<String, Object?>{'t': GenerationIsolateProtocol.msgCheckFail, 's': checkFailure.summary});
+    if (result.checkFailure != null) {
+      port.send(<String, Object?>{'t': GenerationIsolateProtocol.msgCheckFail, 's': result.checkFailure!.summary});
+    }
+    final outLine = result.stdoutLine;
+    if (outLine != null) {
+      port.send(<String, Object?>{'t': GenerationIsolateProtocol.msgStdout, 'm': outLine});
     }
     ok = true;
   } on SnapshotRunnerFailure catch (f) {

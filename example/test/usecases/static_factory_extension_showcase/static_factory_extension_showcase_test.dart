@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/static_factory_extension_showcase/static_factory_extension_showcase.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-14T16:02:43.786341
+// Generated: 2026-05-18T16:09:53.521714
 
 void main() {
   final user = User('', 0);

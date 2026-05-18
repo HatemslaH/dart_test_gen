@@ -2,20 +2,19 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:dart_test_gen/cli/cli_log.dart';
-import 'package:dart_test_gen/cli/cli_progress.dart';
+import '../cli/log.dart';
+import '../cli/progress.dart';
 import 'package:dart_test_gen/gen_config.dart';
 import 'package:dart_test_gen/snapshot.dart';
 import 'package:dart_test_gen/source_parser.dart';
 import 'package:path/path.dart' as p;
 
-import '../domain/check_failure.dart';
 import '../domain/generator_module.dart';
 import '../wiring/app_dependencies.dart';
 import 'cli_args.dart';
 import 'generation_isolate.dart';
 import 'generation_single_library.dart';
-import 'snapshot_failure_formatting.dart';
+import '../cli/snapshot_failure_formatting.dart';
 import 'snapshot_unit_test_generation.dart';
 
 EmitGenerationUi _mainThreadEmit({
@@ -51,9 +50,22 @@ final class CliGenerationOrchestrator {
   final AppDependencies _deps;
 
   Future<void> run(List<String> args) async {
-    final parsedArgs = CliArgs.parseCliArgs(args);
+    final parsedArgs;
+    try {
+      parsedArgs = CliArgs.parseCliArgs(args);
+    } on InvalidCliArgumentsException catch (e) {
+      CliLog.err('${e.message}\n');
+      exit(64);
+    }
+
     final cwd = _deps.filesystem.currentWorkingDirectory;
-    var targets = expandGenerationTargetsWithFs(_deps.filesystem, cwd, parsedArgs.inputs);
+    List<String> targets;
+    try {
+      targets = expandGenerationTargetsWithFs(_deps.filesystem, cwd, parsedArgs.inputs);
+    } on GenerationTargetError catch (e) {
+      CliLog.err('${e.message}\n');
+      exit(e.exitCode);
+    }
 
     if (targets.isEmpty) {
       CliLog.err('No .dart files found.');
@@ -95,7 +107,7 @@ final class CliGenerationOrchestrator {
       exit(64);
     }
 
-    var config = GeneratorConfig.load(packageRoot, configPath: parsedArgs.configPath);
+    var config = _deps.configReader.loadConfig(packageRoot, configPath: parsedArgs.configPath);
     if (parsedArgs.strategy != null ||
         parsedArgs.maxCases != null ||
         parsedArgs.seed != null ||
@@ -130,9 +142,9 @@ final class CliGenerationOrchestrator {
 
     if (targets.length == 1) {
       final label = labels.first;
-      CheckFailure? checkFailure;
+      late final SingleLibraryGenerationResult genResult;
       try {
-        checkFailure = await generateSingleLibraryFile(
+        genResult = await generateSingleLibraryFile(
           filesystem: _deps.filesystem,
           generator: _deps.defaultGenerator,
           absoluteLibPath: targets.first,
@@ -154,6 +166,11 @@ final class CliGenerationOrchestrator {
         exit(1);
       }
       ui.finish();
+      final outLine = genResult.stdoutLine;
+      if (outLine != null) {
+        CliLog.out(outLine);
+      }
+      final checkFailure = genResult.checkFailure;
       if (checkFailure != null) {
         CliLog.err(checkFailure.summary);
         CliLog.err('[check] 1 file(s) differ');
@@ -197,6 +214,13 @@ final class CliGenerationOrchestrator {
           if (t == GenerationIsolateProtocol.msgCheckFail) {
             final s = message['s'] as String? ?? '';
             checkFailureSummaries.add(s);
+            return;
+          }
+          if (t == GenerationIsolateProtocol.msgStdout) {
+            final m = message['m'] as String? ?? '';
+            if (m.isNotEmpty) {
+              CliLog.out(m);
+            }
             return;
           }
           return;

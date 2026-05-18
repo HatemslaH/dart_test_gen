@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
-import '../domain/logic_profile.dart';
+
+import '../../domain/logic_profile.dart';
 
 /// Analyzes a method body to extract logic-derived test hints.
 class MethodLogicAnalyzer {

@@ -4,11 +4,19 @@ import '../domain/check_failure.dart';
 import '../domain/generator_module.dart';
 import '../ports/generation_filesystem.dart';
 
+/// Outcome of generating a single library (check diff and optional stdout line, e.g. dry-run path).
+final class SingleLibraryGenerationResult {
+  const SingleLibraryGenerationResult({this.checkFailure, this.stdoutLine});
+
+  final CheckFailure? checkFailure;
+  final String? stdoutLine;
+}
+
 /// Runs generation for a single library file via a [GeneratorModule].
 ///
-/// Returns a [CheckFailure] when `config.check` is true and the generated
-/// content differs from the existing test file; returns `null` otherwise.
-Future<CheckFailure?> generateSingleLibraryFile({
+/// Returns a [SingleLibraryGenerationResult] with [SingleLibraryGenerationResult.checkFailure]
+/// set when `config.check` is true and the generated content differs from the existing test file.
+Future<SingleLibraryGenerationResult> generateSingleLibraryFile({
   required GenerationFilesystem filesystem,
   required GeneratorModule generator,
   required String absoluteLibPath,
@@ -33,7 +41,10 @@ Future<CheckFailure?> generateSingleLibraryFile({
   );
   final outcome = await generator.run(ctx);
   if (outcome is GeneratorRunCheckMismatch) {
-    return outcome.failure;
+    return SingleLibraryGenerationResult(checkFailure: outcome.failure);
   }
-  return null;
+  if (outcome is GeneratorRunSuccess) {
+    return SingleLibraryGenerationResult(stdoutLine: outcome.emitStdoutLine);
+  }
+  return const SingleLibraryGenerationResult();
 }

@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
 enum SamplingStrategy {
@@ -126,41 +123,4 @@ class GeneratorConfig {
   });
 
   MethodConfig forMethod(String name) => methods[name] ?? defaults;
-
-  static GeneratorConfig load(String packageRoot, {String? configPath}) {
-    final path = configPath ?? p.join(packageRoot, 'dart_test_gen.yaml');
-    final file = File(path);
-
-    if (!file.existsSync()) {
-      return const GeneratorConfig();
-    }
-
-    try {
-      final yamlString = file.readAsStringSync();
-      final yaml = loadYaml(yamlString);
-
-      if (yaml is! YamlMap) {
-        return const GeneratorConfig();
-      }
-
-      final defaults = MethodConfig.fromYaml(yaml, const MethodConfig());
-      final methods = <String, MethodConfig>{};
-
-      if (yaml.containsKey('methods') && yaml['methods'] is YamlMap) {
-        final methodsYaml = yaml['methods'] as YamlMap;
-        for (final entry in methodsYaml.entries) {
-          final methodName = entry.key as String;
-          final methodYaml = entry.value as YamlMap?;
-          methods[methodName] = MethodConfig.fromYaml(methodYaml, defaults);
-        }
-      }
-
-      final keepRunner = yaml['keep_runner'] as bool? ?? false;
-
-      return GeneratorConfig(defaults: defaults, methods: methods, keepRunner: keepRunner);
-    } catch (e) {
-      // Fallback to defaults on error
-      return const GeneratorConfig();
-    }
-  }
 }

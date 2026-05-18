@@ -1,5 +1,7 @@
+import '../application/snapshot_unit_test_generation.dart';
 import '../domain/generator_module.dart';
-import '../generators/snapshot_unit_test_generator_module.dart';
+import '../domain/ports/config_reader.dart';
+import '../infrastructure/config/config_loader.dart';
 import '../infrastructure/io_generation_filesystem.dart';
 import '../ports/generation_filesystem.dart';
 
@@ -7,10 +9,12 @@ import '../ports/generation_filesystem.dart';
 final class AppDependencies {
   AppDependencies({
     required this.filesystem,
+    required this.configReader,
     required List<GeneratorModule> modules,
   }) : modules = List<GeneratorModule>.unmodifiable(modules);
 
   final GenerationFilesystem filesystem;
+  final ConfigReader configReader;
   final List<GeneratorModule> modules;
 
   GeneratorModule get defaultGenerator =>
@@ -21,6 +25,7 @@ final class AppDependencies {
     final fs = IoGenerationFilesystem();
     return AppDependencies(
       filesystem: fs,
+      configReader: const IoConfigReader(),
       modules: const [SnapshotUnitTestGeneratorModule()],
     );
   }

@@ -15,7 +15,12 @@ sealed class GeneratorRunOutcome {}
 final class GeneratorRunSkipped extends GeneratorRunOutcome {}
 
 /// Wrote or validated output; no `--check` mismatch.
-final class GeneratorRunSuccess extends GeneratorRunOutcome {}
+final class GeneratorRunSuccess extends GeneratorRunOutcome {
+  /// When non-null, CLI should print this line to stdout (e.g. `--dry-run` target path).
+  final String? emitStdoutLine;
+
+  GeneratorRunSuccess({this.emitStdoutLine});
+}
 
 /// `--check` found a diff vs disk.
 final class GeneratorRunCheckMismatch extends GeneratorRunOutcome {

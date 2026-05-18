@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/floating_point_showcase/floating_point_showcase.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-14T16:02:43.722784
+// Generated: 2026-05-18T16:09:53.485947
 
 void main() {
   final floatingpointshowcase = FloatingPointShowcase();

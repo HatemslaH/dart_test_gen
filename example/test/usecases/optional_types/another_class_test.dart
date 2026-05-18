@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/optional_types/another_class.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-14T16:02:43.498159
+// Generated: 2026-05-18T16:09:53.249819
 
 void main() {
   final anotherclass = AnotherClass('', 0.0);

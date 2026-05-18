@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:example/usecases/type_extensions_showcase/name_tag.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-14T16:02:43.227306
+// Generated: 2026-05-18T16:09:53.246536
 
 void main() {
   final nametag = NameTag('');

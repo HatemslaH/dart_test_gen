@@ -1,17 +1,25 @@
-import 'dart:io';
-
-import 'package:path/path.dart' as p;
-
-import 'package:dart_test_gen/cli_log.dart';
 import 'package:dart_test_gen/resolved_dependencies.dart';
 import 'package:dart_test_gen/sampling.dart';
 import 'package:dart_test_gen/snapshot.dart';
 import 'package:dart_test_gen/source_parser.dart';
 import 'package:dart_test_gen/test_generator.dart';
+import 'package:path/path.dart' as p;
 
 import '../domain/check_failure.dart';
 import '../domain/generator_module.dart';
+import '../infrastructure/io/io_process_runner.dart';
 import '../ports/generation_filesystem.dart';
+
+/// Invalid user path input when expanding generation targets (CLI prints and exits).
+final class GenerationTargetError implements Exception {
+  const GenerationTargetError(this.message, {this.exitCode = 1});
+
+  final String message;
+  final int exitCode;
+
+  @override
+  String toString() => message;
+}
 
 String buildGenerationCheckSummary(String testPath, String? existingContent, String generatedNormalized) {
   if (existingContent == null) {
@@ -85,27 +93,30 @@ Future<GeneratorRunOutcome> runSnapshotUnitTestGeneration(GeneratorRunContext ct
   const snapWidth = 54.0;
 
   final snapshots = runSnapshots(
-    packageRoot: packageRoot,
-    packageName: packageName,
-    absoluteLibPath: absoluteLibPath,
-    parsed: parsed,
-    extraPackageImports: extraPackageImports,
-    logLabel: displayLabel,
-    onSnapshotFraction: (f) => emit(progress: snapStart + snapWidth * f),
-    onVerboseLine: verbose
-        ? (ln) {
-            emit(line: ln);
-          }
-        : null,
-    onRunnerFailed: verbose
-        ? (se, so) {
-            emit(
-              line: 'snapshot runner stderr:\n$se\nsnapshot runner stdout:\n$so\n',
-              error: true,
-            );
-          }
-        : null,
-    keepRunner: config.keepRunner,
+    SnapshotRunContext(
+      packageRoot: packageRoot,
+      packageName: packageName,
+      absoluteLibPath: absoluteLibPath,
+      parsed: parsed,
+      processRunner: const IoProcessRunner(),
+      extraPackageImports: extraPackageImports,
+      logLabel: displayLabel,
+      onSnapshotFraction: (f) => emit(progress: snapStart + snapWidth * f),
+      onVerboseLine: verbose
+          ? (ln) {
+              emit(line: ln);
+            }
+          : null,
+      onRunnerFailed: verbose
+          ? (se, so) {
+              emit(
+                line: 'snapshot runner stderr:\n$se\nsnapshot runner stdout:\n$so\n',
+                error: true,
+              );
+            }
+          : null,
+      keepRunner: config.keepRunner,
+    ),
   );
   if (config.keepRunner) {
     v('snapshot', 'runner kept (per --keep-runner)');
@@ -192,11 +203,10 @@ Future<GeneratorRunOutcome> runSnapshotUnitTestGeneration(GeneratorRunContext ct
   emit(progress: 90);
 
   if (config.dryRun) {
-    CliLog.out(testOut);
     if (verbose) emit(line: content);
     emit(progress: 100);
     v('dry-run', testOut);
-    return GeneratorRunSuccess();
+    return GeneratorRunSuccess(emitStdoutLine: testOut);
   }
 
   if (config.check) {
@@ -256,13 +266,11 @@ List<String> expandGenerationTargetsWithFs(GenerationFilesystem fs, String cwd, 
     final abs = _absolute(cwd, raw);
     final kind = fs.pathKind(abs);
     if (kind == PathNodeKind.notFound) {
-      CliLog.err('Path not found: $abs');
-      exit(1);
+      throw GenerationTargetError('Path not found: $abs');
     }
     if (kind == PathNodeKind.file) {
       if (!abs.endsWith('.dart')) {
-        CliLog.err('Expected a .dart file: $abs');
-        exit(1);
+        throw GenerationTargetError('Expected a .dart file: $abs');
       }
       if (seen.add(abs)) out.add(abs);
       continue;
@@ -273,8 +281,21 @@ List<String> expandGenerationTargetsWithFs(GenerationFilesystem fs, String cwd, 
       }
       continue;
     }
-    CliLog.err('Unsupported path type: $abs');
-    exit(1);
+    throw GenerationTargetError('Unsupported path type: $abs');
   }
   return out;
+}
+
+/// Built-in [GeneratorModule] for snapshot-driven unit tests.
+///
+/// Registered in [AppDependencies] and the generation isolate; delegates to
+/// [runSnapshotUnitTestGeneration] so additional modules can coexist in the same registry.
+final class SnapshotUnitTestGeneratorModule implements GeneratorModule {
+  const SnapshotUnitTestGeneratorModule();
+
+  @override
+  String get id => kDefaultGeneratorModuleId;
+
+  @override
+  Future<GeneratorRunOutcome> run(GeneratorRunContext ctx) => runSnapshotUnitTestGeneration(ctx);
 }

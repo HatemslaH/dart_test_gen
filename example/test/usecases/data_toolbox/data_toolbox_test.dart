@@ -4,7 +4,7 @@ import 'package:example/usecases/data_toolbox/log_level.dart';
 import 'package:example/usecases/data_toolbox/rgb_color.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-14T16:02:43.858757
+// Generated: 2026-05-18T16:09:53.532128
 
 void main() {
   final datatoolbox = DataToolbox();

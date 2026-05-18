@@ -5,7 +5,7 @@ import 'package:example/usecases/optional_types/custom_item.dart';
 import 'package:example/usecases/optional_types/item_status.dart';
 
 // Auto-generated — do not edit manually
-// Generated: 2026-05-14T16:02:43.981277
+// Generated: 2026-05-18T16:09:53.640096
 
 void main() {
   final optionaltypes = OptionalTypes();

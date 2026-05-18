@@ -2,7 +2,7 @@ import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:test/test.dart';
-import 'package:dart_test_gen/src/application/method_logic_analyzer.dart';
+import 'package:dart_test_gen/src/infrastructure/ast/method_logic_analyzer.dart';
 
 void main() {
   final analyzer = const MethodLogicAnalyzer();
